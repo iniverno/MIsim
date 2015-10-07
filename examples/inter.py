@@ -14,7 +14,7 @@ sys.path.insert(0, caffe_root + 'python')
 
 import caffe
 import compute
-
+import pdb
 plt.rcParams['figure.figsize'] = (10, 10)
 plt.rcParams['image.interpolation'] = 'nearest'
 plt.rcParams['image.cmap'] = 'gray'
@@ -86,32 +86,79 @@ print("Predicted class is #{}.".format(out['prob'].argmax()))
 
 #plt.imshow(transformer.deprocess('data', net.blobs['data'].data[0]))
 
-print net.blobs['data'].data[0].shape
-print net.params['conv1'][0].data.shape
-print net.params['conv1'][1].data.shape
+pdb.set_trace()
 
 print 'Applying conv1'
-aux = compute.computeConvolutionalLayer(net.blobs['data'].data[0], net.params['conv1'], 4, 0)
+aux = compute.computeConvolutionalLayer(net.blobs['data'].data[0], net.params['conv1'], 4, 0, 1)
 
 print 'Applying ReLU1'
 aux = compute.computeReLULayer(aux)
-print aux[0,0,0]
-print np.allclose(net.blobs['conv1'].data[0], aux, atol=1e-3)
-print (net.blobs['conv1'].data[0] - aux)[7,:,:]
+print aux.shape
 #for i in range(aux.shape[0]):
 #  for y in range(aux.shape[1]):
 #    for x in range(aux.shape[2]):
 #      if 
-
-
 print 'Applying pool1'
 aux = compute.computeMaxPoolLayer(aux, 3, 2, 0)
+print aux.shape
 print np.allclose(net.blobs['pool1'].data[0], aux, atol=1e-3)
-
 print 'Applying LRN1'
 aux = compute.computeLRNLayer(aux, 5, 0.0001, 0.75)
+print aux.shape
+print np.allclose(net.blobs['norm1'].data[0], aux, atol=1e-4)
 
-print np.allclose(net.blobs['norm1'].data[0], aux, atol=1e-3)
+print 'Applying conv2'
+aux = compute.computeConvolutionalLayer(aux, net.params['conv2'], 1, 2, 2)
+print 'Applying ReLU2' 
+aux = compute.computeReLULayer(aux) 
+print np.allclose(net.blobs['conv2'].data[0], aux, atol=1e-3)
+print 'Applying pool2'
+aux = compute.computeMaxPoolLayer(aux, 3, 2, 0) 
+print 'Applying LRN2' 
+aux = compute.computeLRNLayer(aux, 5, 0.0001, 0.75) 
+print aux.shape
+
+print 'Applying conv3'
+aux = compute.computeConvolutionalLayer(aux, net.params['conv3'], 1, 1, 1) 
+print 'Applying ReLU3' 
+aux = compute.computeReLULayer(aux) 
+print aux.shape
+
+print 'Applying conv4'
+aux = compute.computeConvolutionalLayer(aux, net.params['conv4'], 1, 1, 2) 
+print 'Applying ReLU4'
+aux = compute.computeReLULayer(aux)
+print aux.shape
+
+print 'Applying conv5'
+aux = compute.computeConvolutionalLayer(aux, net.params['conv5'], 1, 1, 2)
+print 'Applying ReLU5'
+aux = compute.computeReLULayer(aux) 
+print 'Applying pool5'
+aux = compute.computeMaxPoolLayer(aux, 3, 2, 0)  
+
+print 'Applying FC6'
+aux = compute.computeFullyConnected(aux, net.params['fc6'])
+print aux.shape
+print 'Applying ReLU6'
+aux = compute.computeReLULayer(aux) 
+aux = compute.computeDropoutLayer(aux, 0.5)
+
+print 'Applying FC7'
+aux = compute.computeFullyConnected(aux, net.params['fc7'])
+aux = compute.computeReLULayer(aux)   
+aux = compute.computeDropoutLayer(aux, 0.5)  
+
+print 'Applying FC8'
+aux = compute.computeFullyConnected(aux, net.params['fc8']) 
+
+   
+print aux.shape
+print np.allclose(net.blobs['fc6'].data[0], aux, atol=1e-3) 
+
+
+print aux.shape
+
 
 sys.exit(0)
 

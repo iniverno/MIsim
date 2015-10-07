@@ -11,7 +11,7 @@ import math
 #		N = # filters, Fx=Fy= filter size
  
 
-def computeConvolutionalLayer(data, filters, stride, padding):
+def computeConvolutionalLayer(data, filters, stride, padding, group):
   weights = filters[0].data
   biases  = filters[1].data
   N	  = weights.shape[0]
@@ -24,12 +24,12 @@ def computeConvolutionalLayer(data, filters, stride, padding):
 
 
   if padding != 0:
-    adjustDataPadding(data, padding)
+    data = adjustDataPadding(data, padding)
     Ix      = data.shape[1]
     Iy      = data.shape[2]
 
 
-  assert weights.shape[1]==data.shape[0], "#filters (%d) is not equal to #input features (%d)" %(weights.shape[1], data.shape[0])  
+  assert weights.shape[1]*group==data.shape[0], "#filters (%d) is not equal to #input features (%d)" %(weights.shape[1], data.shape[0])  
   assert Ix==Iy, "Input width (%d) is not equal to Input height (%d)" %(data.shape[1], data.shape[2]) 
   assert Fx==Fy, "Filter width (%d) is not equal to Filter height (%d)" %(Fx, Fy)
 
@@ -43,7 +43,10 @@ def computeConvolutionalLayer(data, filters, stride, padding):
     for posInputY in range(0, Iy-Fy+1, stride):
       for cntFilter in range(N): #for each filter we are going to calculate the convolution of the filter at the particular x,y position 
 
-        output[cntFilter, outPosY, outPosX]  = computeWindow(weights[cntFilter], data[:, posInputY:posInputY+Fy, posInputX:posInputX+Fx])
+        if cntFilter < N/group: 
+          output[cntFilter, outPosY, outPosX]  = computeWindow(weights[cntFilter], data[:(data.shape[0]/group), posInputY:posInputY+Fy, posInputX:posInputX+Fx])
+        else:
+          output[cntFilter, outPosY, outPosX]  = computeWindow(weights[cntFilter], data[(data.shape[0]/group):, posInputY:posInputY+Fy, posInputX:posInputX+Fx])
         
     #    for posFilterX in range(Fx):
     #      for posFilterY in range(Fy): 
@@ -73,8 +76,8 @@ def computeWindowLoops(filter, data):
 def adjustDataPadding(data, padding):
   assert padding != 0, "Padding is zero"
   aux = np.zeros((data.shape[0], data.shape[1] + 2*padding, data.shape[2] + 2*padding))
-  aux[:, padding:, padding:] = data
-  data = aux
+  aux[:, padding:-padding, padding:-padding] = data
+  return aux
 
 def computeMaxPoolLayer(data, filterSize, stride, padding):
   if padding !=0: adjustPadding(data, padding)
@@ -93,6 +96,10 @@ def computeMaxPoolLayer(data, filterSize, stride, padding):
     outPosX +=1
   return output   
 
+
+# It computes a Local Response Normalization Layer
+# for each element in the data array, it uses an auxiliar function to compute the proper value
+# return: a matrix with the values after applying the function in the input data
 def computeLRNLayer(data, size, alpha, beta):
   aux = np.zeros(data.shape)
   for posX in range(data.shape[1]):
@@ -101,6 +108,14 @@ def computeLRNLayer(data, size, alpha, beta):
         aux[posI, posY, posX] = computePosLRN(data, posX, posY, posI, size, alpha, beta)
   return aux
 
+
+
+# it computes the LocalResponse normalization at a particular position
+# it is defined by the equation result = data[i,y,x] / pow(1+a/size*sum(data[i-2:i+2, y, x]), b)
+# data: complete input data
+# x,y,i: position
+# size: number of positions in the i dimension to take into account
+# a, b: paramemeters in the equation
 def computePosLRN(data, x, y, i, size, a, b):
   value = 0.0
   for cnt in range(-(size/2), size/2 + 1):
@@ -110,8 +125,21 @@ def computePosLRN(data, x, y, i, size, a, b):
   value = math.pow((1 + a/float(size) * value), b)
   return data[i,y,x] / value  
 
+def computeSoftmaxLayer(x):
+    e_x = np.exp(x - np.max(x))
+    out = e_x / e_x.sum()
+    return out
+
+def computeDropoutLayer(data, dropoutFactor):
+  return data * dropoutFactor 
+
 def computeReLULayer(data):
-  aux = np.zeros(data.shape)
+  
+  aux = np.copy(data)
+  for i,e in enumerate(aux.flat):
+    if e<0: aux.flat[i] = 0
+  return aux
+
   for posX in range(data.shape[1]):
     for posY in range(data.shape[2]):
       for posI in range(data.shape[0]):
@@ -120,4 +148,9 @@ def computeReLULayer(data):
   return aux
 
 
-
+def computeFullyConnected(data, filters):
+  filters = filters[0].data
+  aux = np.zeros((filters.shape[0]))
+  for i in range(filters.shape[0]):
+    aux[i] = np.sum(filters[i] * data.flatten())
+  return aux
