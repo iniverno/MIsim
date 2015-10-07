@@ -151,10 +151,10 @@ aux = compute.computeDropoutLayer(aux, 0.5)
 
 print 'Applying FC8'
 aux = compute.computeFullyConnected(aux, net.params['fc8']) 
-
+aux = compute.computeDropoutLayer(aux)
    
 print aux.shape
-print np.allclose(net.blobs['fc6'].data[0], aux, atol=1e-3) 
+print np.allclose(net.blobs['prob'].data[0], aux, atol=1e-3) 
 
 
 print aux.shape
