@@ -86,7 +86,6 @@ print("Predicted class is #{}.".format(out['prob'].argmax()))
 
 #plt.imshow(transformer.deprocess('data', net.blobs['data'].data[0]))
 
-pdb.set_trace()
 
 print 'Applying conv1'
 aux = compute.computeConvolutionalLayer(net.blobs['data'].data[0], net.params['conv1'], 4, 0, 1)
@@ -151,11 +150,20 @@ aux = compute.computeDropoutLayer(aux, 0.5)
 
 print 'Applying FC8'
 aux = compute.computeFullyConnected(aux, net.params['fc8']) 
-aux = compute.computeDropoutLayer(aux)
+aux = compute.computeSoftmaxLayer(aux)
    
-print aux.shape
+print aux
+print net.blobs['prob'].data[0]
 print np.allclose(net.blobs['prob'].data[0], aux, atol=1e-3) 
 
+imagenet_labels_filename = caffe_root + 'data/ilsvrc12/synset_words.txt'
+labels = np.loadtxt(imagenet_labels_filename, str, delimiter='\t')
+
+# sort top k predictions from softmax output
+top_k = net.blobs['prob'].data[0].flatten().argsort()[-1:-6:-1]
+print labels[top_k]
+top_k = aux.flatten().argsort()[-1:-6:-1] 
+print labels[top_k] 
 
 print aux.shape
 
