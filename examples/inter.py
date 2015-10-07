@@ -90,7 +90,28 @@ print net.blobs['data'].data[0].shape
 print net.params['conv1'][0].data.shape
 print net.params['conv1'][1].data.shape
 
-compute.computeConvolutionalLayer(net.blobs['data'].data[0], net.params['conv1'], 4, 0)
+print 'Applying conv1'
+aux = compute.computeConvolutionalLayer(net.blobs['data'].data[0], net.params['conv1'], 4, 0)
+
+print 'Applying ReLU1'
+aux = compute.computeReLULayer(aux)
+print aux[0,0,0]
+print np.allclose(net.blobs['conv1'].data[0], aux, atol=1e-3)
+print (net.blobs['conv1'].data[0] - aux)[7,:,:]
+#for i in range(aux.shape[0]):
+#  for y in range(aux.shape[1]):
+#    for x in range(aux.shape[2]):
+#      if 
+
+
+print 'Applying pool1'
+aux = compute.computeMaxPoolLayer(aux, 3, 2, 0)
+print np.allclose(net.blobs['pool1'].data[0], aux, atol=1e-3)
+
+print 'Applying LRN1'
+aux = compute.computeLRNLayer(aux, 5, 0.0001, 0.75)
+
+print np.allclose(net.blobs['norm1'].data[0], aux, atol=1e-3)
 
 sys.exit(0)
 

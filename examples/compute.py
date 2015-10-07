@@ -1,5 +1,8 @@
 import chunk
 import numpy as np
+import math 
+
+
 # in:
 # 	data : numpy 3D ndarray of dimensions i * Wx * Wy, i=# input features, Wx=Wy= size of input
 #	filters: a list with two elements, we will use the field "data" of both, 
@@ -32,23 +35,22 @@ def computeConvolutionalLayer(data, filters, stride, padding):
 
 
     
-  output = np.zeros((N, Ix/stride+1, Iy/stride+1))
+  output = np.zeros((N, (Ix-Fx)/stride+1, (Iy-Fy)/stride+1))
   outPosX = 0
-  for posInputX in range(0, Ix-Fx, stride):
+  for posInputX in range(0, Ix-Fx+1, stride):
     outPosY = 0
     print posInputX
-    for posInputY in range(0, Iy-Fy, stride):
+    for posInputY in range(0, Iy-Fy+1, stride):
       for cntFilter in range(N): #for each filter we are going to calculate the convolution of the filter at the particular x,y position 
 
-        #output[cntFilter, outPosY, outPosX] 
-        aux = computeWindow(weights[cntFilter], data[:, posInputY:posInputY+Fy, posInputX:posInputX+Fx])
+        output[cntFilter, outPosY, outPosX]  = computeWindow(weights[cntFilter], data[:, posInputY:posInputY+Fy, posInputX:posInputX+Fx])
         
-        for posFilterX in range(Fx):
-          for posFilterY in range(Fy): 
-            for posFilterI in range(i):
-              output[cntFilter, outPosY, outPosX] += weights[cntFilter][posFilterI][posFilterY][posFilterX] * \
-                                                     data[posFilterI][posInputY + posFilterY][posInputX + posFilterX]
-        print repr(cntFilter) + '  ' + repr(outPosY) + ' ' + repr(outPosX) + ' a:' + repr(aux) + ' ' + repr(output[cntFilter, outPosY, outPosX]) 
+    #    for posFilterX in range(Fx):
+    #      for posFilterY in range(Fy): 
+    #        for posFilterI in range(i):
+    #          output[cntFilter, outPosY, outPosX] += weights[cntFilter][posFilterI][posFilterY][posFilterX] * \
+    #                                                 data[posFilterI][posInputY + posFilterY][posInputX + posFilterX]
+    #    print repr(cntFilter) + '  ' + repr(outPosY) + ' ' + repr(outPosX) + ' a:' + repr(aux) + ' ' + repr(output[cntFilter, outPosY, outPosX]) 
         output[cntFilter, outPosY, outPosX] += biases[cntFilter]
       outPosY += 1
     outPosX += 1
@@ -79,12 +81,12 @@ def computeMaxPoolLayer(data, filterSize, stride, padding):
   
   Ix = data.shape[1]
   Iy = data.shape[2]
-  output = np.zeros((data.shape[0], Ix/stride+1, Iy/stride+1))
+  output = np.zeros((data.shape[0], (Ix-filterSize)/stride+1, (Iy-filterSize)/stride+1))
   
   outPosX = 0
-  for posInputX in range(0, Ix - filterSize, stride):
+  for posInputX in range(0, Ix - filterSize + 1, stride):
     outPosY = 0
-    for posInputY in range(0, Iy - filterSize, stride):
+    for posInputY in range(0, Iy - filterSize + 1, stride):
       for cntFeature in range(0, data.shape[0]):
         output[cntFeature, outPosY, outPosX] = np.max(data[cntFeature, posInputY:posInputY+filterSize, posInputX:posInputX+filterSize])
       outPosY += 1
@@ -113,8 +115,8 @@ def computeReLULayer(data):
   for posX in range(data.shape[1]):
     for posY in range(data.shape[2]):
       for posI in range(data.shape[0]):
-        if data[i, y, x] < 0: aux[i, y, x] = 0.0
-        else: aux[i, y, x] = data[i, y, x]
+        if data[posI, posY, posX] < 0: aux[posI, posY, posX] = 0.0
+        else: aux[posI, posY, posX] = data[posI, posY, posX]
   return aux
 
 
