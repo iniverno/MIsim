@@ -64,6 +64,8 @@ def computeConvolutionalLayer(data, filters, stride, padding, group):
 def computeWindow(filter, data):
   return np.sum(filter*data)
 
+
+# this is simply an implementation of the previous function but using loops
 def computeWindowLoops(filter, data):
   aux = 0
   for posFilterX in range(filter.shape[1]):
