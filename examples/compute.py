@@ -42,18 +42,12 @@ def computeConvolutionalLayer(data, filters, stride, padding, group):
     print posInputX
     for posInputY in range(0, Iy-Fy+1, stride):
       for cntFilter in range(N): #for each filter we are going to calculate the convolution of the filter at the particular x,y position 
-
+        # This implementation will work as long as group is 1 or 2, IT WON'T WORK FOR OTHER VALUES Of GROUP
         if cntFilter < N/group: 
           output[cntFilter, outPosY, outPosX]  = computeWindow(weights[cntFilter], data[:(data.shape[0]/group), posInputY:posInputY+Fy, posInputX:posInputX+Fx])
         else:
           output[cntFilter, outPosY, outPosX]  = computeWindow(weights[cntFilter], data[(data.shape[0]/group):, posInputY:posInputY+Fy, posInputX:posInputX+Fx])
         
-    #    for posFilterX in range(Fx):
-    #      for posFilterY in range(Fy): 
-    #        for posFilterI in range(i):
-    #          output[cntFilter, outPosY, outPosX] += weights[cntFilter][posFilterI][posFilterY][posFilterX] * \
-    #                                                 data[posFilterI][posInputY + posFilterY][posInputX + posFilterX]
-    #    print repr(cntFilter) + '  ' + repr(outPosY) + ' ' + repr(outPosX) + ' a:' + repr(aux) + ' ' + repr(output[cntFilter, outPosY, outPosX]) 
         output[cntFilter, outPosY, outPosX] += biases[cntFilter]
       outPosY += 1
     outPosX += 1
