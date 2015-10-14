@@ -23,24 +23,22 @@ class Unit:
     
 
   # TODO: what happens if the computation is broken in subbricks ????
-  # TODO: this function is copying ONLY ONE filter rigth now
-  # filterData: vector containing the filter data flat
-  # filterIndexes: index corresponding to the filter identifier
+  # filterData: list of a 1D ndarrays containing the filter data flat
+  # filterIndexes: list containing filter indexes 
   def fill_SB(self, filterData, filterIndexes):
-    #filterSize = filterData.shape[1]*filter_data.shape[2]*filter_data.shape[3] 
-    filterSize = filterData.size
-    nFilters = len(filterIndexes)
+    for i,e in enumerate(filterIndexes):
+      filterSize = filterData[i].size
+      nFilters = len(filterIndexes)
 
-    # Check if there is enough space
-    assert filterSize * nFilters <= SB_available, "The filters being loaded in SB of unit %d are too big (%d vs. %d available)"%(self.unitId, filterSize, self.SB_size)
+      # Check if there is enough space
+      assert filterSize  <= SB_available, "The filters being loaded in SB of unit %d are too big (%d vs. %d available)"%(self.unitId, filterSize, self.SB_size)
 
-    for f in filterIndexes:
       if self.VERBOSE:
         print "SB in unit %d is now storing filter #%d"%(self.unitId, f)
-      self.SB_data[f] = filterData[f]
+      self.SB_data[f] = filterData[i]
 
-    # update the available space
-    self.SB_available -= filterSize * nFilters
+      # update the available space
+      self.SB_available -= filterSize 
 
   def fill_NBin(self, inputData, offsets = []):
     assert offsets != [] or Ti !=1, "Something is wrong with the parameters of fill_NBin"
