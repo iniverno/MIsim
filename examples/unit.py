@@ -5,16 +5,15 @@ class Unit:
   NBin_num_entries = 16
   Ti = 16
   Tn = 16
-  SB_size = (1 << 20) # in elements 2MB / 16bits
 
   def __init__(self, uid, NBin_num_entries, Ti, Tn, SB_size):
     self.unit_id = uid
     self.NBin_num_entries = NBin_num_entries
     self.Ti = Ti
     self.Tn = Tn
-    self.SB_size = SB_size
     
     #instance variables 
+    self.SB_size = SB_size
     self.SB_data = {}
     self.NBin_data = np.zeros((Ti, NBin_num_entries))
     
