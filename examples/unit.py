@@ -7,7 +7,7 @@ class Unit:
   Tn = 16
 
   def __init__(self, verbose, uid, NBin_nEntries, Ti, Tn, SB_size, directorCallback):
-    self.unitId = uid
+    self.unitID = uid
     self.VERBOSE = verbose
     self.NBin_nEntries = NBin_nEtries
     self.Ti = Ti
@@ -45,4 +45,7 @@ class Unit:
     self.NBin_data = inputData 
 
   def compute(self):
+    if self.VERBOSE: print "unit #%d computing"%(self.unitID)
+    self.directorCallbackWhenReady(self.unitID)
+
 
