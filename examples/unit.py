@@ -6,37 +6,45 @@ class Unit:
   Ti = 16
   Tn = 16
 
-  def __init__(self, verbose, uid, NBin_num_entries, Ti, Tn, SB_size):
-    self.unit_id = uid
+  def __init__(self, verbose, uid, NBin_nEntries, Ti, Tn, SB_size, directorCallback):
+    self.unitId = uid
     self.VERBOSE = verbose
-    self.NBin_num_entries = NBin_num_entries
+    self.NBin_nEntries = NBin_nEtries
     self.Ti = Ti
     self.Tn = Tn
     self.busy = False
+    self.directorCallbackWhenReady = directorCallback
 
     #instance variables 
     self.SB_size = SB_size
     self.SB_available = SB_size
     self.SB_data = {}
-    self.NBin_data = np.zeros((Ti, NBin_num_entries))
+    self.NBin_data = np.zeros((Ti, NBin_nEntries))
     
 
   # TODO: what happens if the computation is broken in subbricks ????
-  def fill_SB(self, filter_data, filter_indexes):
-    filter_size = filter_data.shape[1]*filter_data.shape[2]*filter_data.shape[3] 
-    nFilters = len(filter_indexes)
+  # TODO: this function is copying ONLY ONE filter rigth now
+  # filterData: vector containing the filter data flat
+  # filterIndexes: index corresponding to the filter identifier
+  def fill_SB(self, filterData, filterIndexes):
+    #filterSize = filterData.shape[1]*filter_data.shape[2]*filter_data.shape[3] 
+    filterSize = filterData.size
+    nFilters = len(filterIndexes)
 
     # Check if there is enough space
-    assert filter_size * nFilters <= SB_available, "The filters being loaded in SB of unit %d are too big (%d vs. %d available)"%(self.unit_id, filter_size, self.SB_size)
+    assert filterSize * nFilters <= SB_available, "The filters being loaded in SB of unit %d are too big (%d vs. %d available)"%(self.unitId, filterSize, self.SB_size)
 
-    for f in filter_indexes:
+    for f in filterIndexes:
       if self.VERBOSE:
-        print "SB in unit %d is now storing filter #%d"%(unit_id, f)
-      self.SB_data[f] = filter_data[f]
+        print "SB in unit %d is now storing filter #%d"%(self.unitId, f)
+      self.SB_data[f] = filterData[f]
 
     # update the available space
-    self.SB_available -= filter_size * nFilters
+    self.SB_available -= filterSize * nFilters
 
-  def fill_NBin(self, input_data, offsets = []):
+  def fill_NBin(self, inputData, offsets = []):
     assert offsets != [] or Ti !=1, "Something is wrong with the parameters of fill_NBin"
-    self.NBin_data = input_data 
+    self.NBin_data = inputData 
+
+  def compute(self):
+
