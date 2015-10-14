@@ -2,13 +2,10 @@ import numpy as np
 
 class Unit:
   """This is the class which represents a single processing pipeline"""
-  unit_id = 0
   NBin_num_entries = 16
   Ti = 16
   Tn = 16
-  NBin_data = np.zeros((Ti, NBin_num_entries))
   SB_size = (1 << 20) # in elements 2MB / 16bits
-  SB_data = {} #a dictionary with the filters included in SB, indexed by filter index
 
   def __init__(self, uid, NBin_num_entries, Ti, Tn, SB_size):
     self.unit_id = uid
@@ -16,6 +13,11 @@ class Unit:
     self.Ti = Ti
     self.Tn = Tn
     self.SB_size = SB_size
+    
+    #instance variables 
+    self.SB_data = {}
+    self.NBin_data = np.zeros((Ti, NBin_num_entries))
+    
 
   # TODO: what happens if the computation is broken in subbricks ????
   def fill_SB(filter_data, filter_indexes):
