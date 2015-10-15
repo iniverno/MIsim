@@ -1,22 +1,24 @@
 import numpy as np
 import unit
 
-class layerDirector:
+class LayerDirector:
 
-    verboseUnits = True
+  verboseUnits = True
 
   def __init__(self, nUnits, Ti, Tn, NBin_nEntries):
+    self.VERBOSE = True
     self.units = []
     self.nUnits = nUnits
     self.Tn = Tn
     self.Ti = Ti
-    self.Nbin_nEntries = NBin_nEntries
+    self.NBin_nEntries = NBin_nEntries
     self.unitLastPosInWindow = np.zeros((nUnits, 2))  #it records the last position of the actual window that was sent to each unit (nWindow, pos)
     self.windowsDataFlat = {}
     self.unitsProcWindow = {}
     self.filtersToUnits = {}
+    self.unitToWindow = {}
     for i in range(nUnits):
-      units.append(Unit(i, verboseUnits, i, NBin_nEntries, Ti, Tn, (1<<20)), processDataFromUnits)
+      self.units.append(unit.Unit(True, i, NBin_nEntries, Ti, Tn, (1<<20), self.processDataFromUnits))
 
 ##################################################################################
 ###
@@ -26,13 +28,12 @@ class layerDirector:
 ##################################################################################
   # this function copy the filter weights into the unit eDRAM
   def initializeLayer(self, weights):
-    nUnits = len(units)
     nTotalFilters = weights.shape[0]
     #how many filters have to go to each unit
-    nFiltersPerUnit = nTotalFilters / nUnits
+    nFiltersPerUnit = nTotalFilters / self.nUnits
     print "%d filters per unit" % (nFiltersPerUnit)
     # if the total number of filters is not a multiple of nUnits
-    nAdditionalFilters = nTotalFilters - (nFiltersPerUnit * nUnits)
+    nAdditionalFilters = nTotalFilters - (nFiltersPerUnit * self.nUnits)
     print "plus %d additional filters"%(nAdditionalFilters)
     
     for idxFilter in range(nTotalFilters):
@@ -41,7 +42,7 @@ class layerDirector:
       filterFlat = weights[idxFilter]
       filterFlat = np.swapaxes(filterFlat, 0, 2).flatten()
 
-      self.units[idxFilter % nUnits].fill_SB((filterFlat), (idxFilter))
+      self.units[(idxFilter / self.nUnits) % self.nUnits].fill_SB([filterFlat], [idxFilter])
 
 ##################################################################################
 ###
@@ -54,7 +55,7 @@ class layerDirector:
     self.initializeLayer(filterWeights)
 
     # generate windows
-    auxWindow = np.zeros((256, 3, 3))
+    auxWindow = np.zeros((192, 3, 3))
     # process each window
     self.initializeWindow(auxWindow, 17)
     self.processWindow(17)
@@ -81,12 +82,22 @@ class layerDirector:
     
     while self.unitsProcWindow[windowID] > 0:
       for cntUnit in range(self.nUnits):
-        if not units[cntUnit].busy:
+        if not self.units[cntUnit].busy:
           auxPos = self.unitLastPosInWindow[cntUnit][1] #pos 0 is the window id but only one window will be considered for the time being
-          self.units.[cntUnit].fill_NBin(self.windowsDataFlat[windowID][auxPos : max(auxPos + nElements, windowData.size) ])
-          self.unitToWindow[cntUnit] = windowID
-          self.units.[cntUnit].compute()
+	           
+          # copy the input data in NBin
+          self.units[cntUnit].fill_NBin(self.windowsDataFlat[windowID][auxPos : min(auxPos + nElements, self.windowsDataFlat[windowID].size) ])
+          print 'SIZE: %d %d'%(auxPos + nElements, self.windowsDataFlat[windowID].size)
+
+          self.unitToWindow[cntUnit] = windowID # track which window is computing each unit
+          self.units[cntUnit].compute()  	# compute
+
+          # increase pointer indicating last processed element
           self.unitLastPosInWindow[cntUnit][1] += nElements
+          
+          if self.unitLastPosInWindow[cntUnit][1] >= self.windowsDataFlat[windowID].size:
+            self.unitsProcWindow[self.unitToWindow[cntUnit]] -= 1
+          
 
     if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
  
@@ -97,5 +108,4 @@ class layerDirector:
 
   def processDataFromUnits(self, unitID):
     if self.VERBOSE: print "director callback for unit #%d"%(unitID) 
-    self.unitsProcWindow[self.unitToWindow[unitID]] -= 1
      
