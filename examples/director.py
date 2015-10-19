@@ -17,7 +17,7 @@ class LayerDirector:
     self.filtersToUnits = {}
     self.unitToWindow = {}
     for i in range(nClusters):
-      self.units.append(cluster.Cluster(self.nUnitsCluster, Ti, Tn, NBin_nEntries)
+      self.clusters.append(cluster.Cluster(self.nUnitsCluster, Ti, Tn, NBin_nEntries)
 
 ##################################################################################
 ###
@@ -56,7 +56,7 @@ class LayerDirector:
     auxWindow = np.zeros((192, 3, 3))
     # process each window
     self.initializeWindow(auxWindow, 17)
-    self.processWindow(17)
+    self.processWindow(auxWindow, 17)
 
 ##################################################################################
 ###
@@ -66,37 +66,22 @@ class LayerDirector:
 
     #self.windowsDataFlat[windowID] = np.swapaxes(windowData, 0, 2).flatten()
     self.clustersProcWindow[windowID] = self.nClusters
+    for cntCluster in range(self.nClusters):
+      self.clusters[cntCluster].initializeWindow(windowData, windowID)
+    
 
 ##################################################################################
 ###
 ##################################################################################
 
-  def processWindow(self, windowID):
+  def processWindow(self, windowData, windowID):
     if self.VERBOSE: print "Processing of window #%d"%(windowID)
 
-    # the window has to be processed by each unit
-    # divide the window in chunks as big as NBin
-    nElements = self.Ti * self.NBin_nEntries
-    
-    while self.unitsProcWindow[windowID] > 0:
-      for cntUnit in range(self.nUnits):
-        if not self.units[cntUnit].busy:
-          auxPos = self.unitLastPosInWindow[cntUnit][1] #pos 0 is the window id but only one window will be considered for the time being
-	           
-          # copy the input data in NBin
-          self.units[cntUnit].fill_NBin(self.windowsDataFlat[windowID][auxPos : min(auxPos + nElements, self.windowsDataFlat[windowID].size) ])
-          print 'SIZE: %d %d'%(auxPos + nElements, self.windowsDataFlat[windowID].size)
-
-          self.unitToWindow[cntUnit] = windowID # track which window is computing each unit
-          self.units[cntUnit].compute()  	# compute
-
-          # increase pointer indicating last processed element
-          self.unitLastPosInWindow[cntUnit][1] += nElements
+    #while self.clustersProcWindow[windowID] > 0:
+    for cntCluster in range(self.nClusters):
+      if not self.clusters[cntCluster].busy:
+        self.clusters[cntCluster].processWindow(windowData)
           
-          if self.unitLastPosInWindow[cntUnit][1] >= self.windowsDataFlat[windowID].size:
-            self.unitsProcWindow[self.unitToWindow[cntUnit]] -= 1
-          
-
     if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
  
     # TODO: in the baseline, all the units have to process every window
