@@ -5,20 +5,19 @@ class LayerDirector:
 
   verboseUnits = True
 
-  def __init__(self, nUnits, Ti, Tn, NBin_nEntries):
+  def __init__(self, nClusters, nTotalUnits, Ti, Tn, NBin_nEntries):
     self.VERBOSE = True
-    self.units = []
-    self.nUnits = nUnits
+    self.clusters = []
+    self.nClusters = nClusters
+    self.nUnitsCluster = nTotalUnits / nClusters
     self.Tn = Tn
     self.Ti = Ti
     self.NBin_nEntries = NBin_nEntries
-    self.unitLastPosInWindow = np.zeros((nUnits, 2))  #it records the last position of the actual window that was sent to each unit (nWindow, pos)
     self.windowsDataFlat = {}
-    self.unitsProcWindow = {}
     self.filtersToUnits = {}
     self.unitToWindow = {}
-    for i in range(nUnits):
-      self.units.append(unit.Unit(True, i, NBin_nEntries, Ti, Tn, (1<<20), self.processDataFromUnits))
+    for i in range(nClusters):
+      self.units.append(cluster.Cluster(self.nUnitsCluster, Ti, Tn, NBin_nEntries)
 
 ##################################################################################
 ###
@@ -29,25 +28,19 @@ class LayerDirector:
   # this function copy the filter weights into the unit eDRAM
   def initializeLayer(self, weights):
     nTotalFilters = weights.shape[0]
-    #how many filters have to go to each unit
-    nFiltersPerUnit = nTotalFilters / self.nUnits
-    print "%d filters per unit" % (nFiltersPerUnit)
-    # if the total number of filters is not a multiple of nUnits
-    nAdditionalFilters = nTotalFilters - (nFiltersPerUnit * self.nUnits)
+    #how many filters have to go to each cluster
+    nFiltersPerCluster = nTotalFilters / self.nClusters
+    print "%d filters per cluster" % (nFiltersPerCluster)
+    # if the total number of filters is not a multiple of nClusters
+    nAdditionalFilters = nTotalFilters - (nFiltersPerCluster * self.nClusters)
     print "plus %d additional filters"%(nAdditionalFilters)
    
     # send the units the size of the filters so they can configure SB properly (simulation) 
-    for i in range(self.nUnits): 
-      print weights[0].size
-      self.units[i].initializeUnit(1728)
+    for i in range(self.nClusters): 
+      self.clusters[i].initialize(weights[0].size)
 
     for idxFilter in range(nTotalFilters):
-      # the filter is firstly made flat
-      # the axes are swapped to made it accross features first 
-      filterFlat = weights[idxFilter]
-      filterFlat = np.swapaxes(filterFlat, 0, 2).flatten()
-
-      self.units[(idxFilter / self.nUnits) % self.nUnits].fill_SB([filterFlat], [idxFilter])
+      self.clusters[(idxFilter / self.nClusters) % self.nClusters].fill_SB(weights[idxFilter], idxFilter)
 
 ##################################################################################
 ###
@@ -71,8 +64,8 @@ class LayerDirector:
   def initializeWindow(self, windowData, windowID):
     if self.VERBOSE: print "Initializing window #%d"%(windowID)
 
-    self.windowsDataFlat[windowID] = np.swapaxes(windowData, 0, 2).flatten()
-    self.unitsProcWindow[windowID] = self.nUnits
+    #self.windowsDataFlat[windowID] = np.swapaxes(windowData, 0, 2).flatten()
+    self.clustersProcWindow[windowID] = self.nClusters
 
 ##################################################################################
 ###

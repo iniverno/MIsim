@@ -28,7 +28,7 @@ class Unit:
     self.windowPointer = 0  #it tracks the next filter to compute
 
   # this function assigns SB with the right shape according to the filter size
-  def initializeUnit(self, filterSize):
+  def initialize(self, filterSize):
     nFiltersFit = self.SB_size / filterSize
     self.SB_data = np.zeros((nFiltersFit, filterSize))
 
