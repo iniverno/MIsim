@@ -18,11 +18,19 @@ class Unit:
     #instance variables 
     self.SB_size = SB_size
     self.SB_available = SB_size
-    self.SB_data = {}
+    self.SB_nextFilterIdx = 0
+    self.SB_filterIDtoEntry = {}
+    self.SB_entryToFilterID = {}
+    self.SB_data = 0 # initializeUnit will assign this var properly according to the filters of the layer
     self.NBin_data = np.zeros((Ti, NBin_nEntries))
 
     #These pointers are used when computing the data in the buffers (compute function)
     self.windowPointer = 0  #it tracks the next filter to compute
+
+  # this function assigns SB with the right shape according to the filter size
+  def initializeUnit(self, filterSize):
+    nFiltersFit = self.SB_size / filterSize
+    self.SB_data = np.zeros((nFiltersFit, filterSize))
 
   # TODO: what happens if the computation is broken in subbricks ????
   # filterData: list of a 1D ndarrays containing the filter data flat
@@ -37,7 +45,13 @@ class Unit:
 
       if self.VERBOSE:
         print "SB in unit %d is now storing filter #%d"%(self.unitID, e)
-      self.SB_data[e] = filterData[i]
+      # store the filter data at the proper position
+      self.SB_data[self.SB_nextFilterIdx] = filterData[i]
+
+      #record the entry that the filter is stored in at SB  
+      self.SB_filterIDtoEntry[e] = self.SB_nextFilterIdx
+      self.SB_entryToFilterID[self.SB_nextFilterIdx] = e
+      self.SB_nextFilterIdx += 1
 
       # update the available space
       self.SB_available -= filterSize 
@@ -58,11 +72,9 @@ class Unit:
     NB_head = np.zeros((self.Ti))
 
     
-    NBout_nEntries = int(math.ceil(len(self.SB_data) / self.Tn))
-    if self.VERBOSE: print "%d reuses of each input data (SBdata %d, Tn %d) "%(NBout_nEntries, len(self.SB_data), self.Tn)
+    NBout_nEntries = int(math.ceil((self.SB_nextFilterIdx ) / self.Tn))
+    if self.VERBOSE: print "%d reuses of each input data (idx %d, SBdata %d, Tn %d) "%(NBout_nEntries, self.SB_nextFilterIdx, self.SB_data.size, self.Tn)
 
-    print self.SB_data
-    print self.SB_data.keys()
 
     for t in range( NBout_nEntries):
       localWindowPointer = self.windowPointer
@@ -70,9 +82,9 @@ class Unit:
         NB_head = self.NBin_data[e * self.Ti : e * self.Ti + self.Ti]
         # for each filter that fits     
         for f in range(self.Tn):
-          filterNow = self.SB_data.keys()[t * self.Tn + f]
+          filterNow = t * self.Tn + f
           if self.VERBOSE:
-            print 'unit %d, NBin entry %d, computing filter #%d, pos %d-%d %d'%(self.unitID, e, filterNow, self.windowPointer , self.windowPointer + self.Ti, t * self.Tn + f)
+            print 'unit %d, NBin entry %d, computing filter #%d, pos %d-%d %d'%(self.unitID, e, self.SB_entryToFilterID[filterNow], localWindowPointer , localWindowPointer + self.Ti, t * self.Tn + f)
           SB_head[f] = self.SB_data[filterNow] [localWindowPointer : localWindowPointer + self.Ti]
         localWindowPointer += self.Ti
 

@@ -35,7 +35,12 @@ class LayerDirector:
     # if the total number of filters is not a multiple of nUnits
     nAdditionalFilters = nTotalFilters - (nFiltersPerUnit * self.nUnits)
     print "plus %d additional filters"%(nAdditionalFilters)
-    
+   
+    # send the units the size of the filters so they can configure SB properly (simulation) 
+    for i in range(self.nUnits): 
+      print weights[0].size
+      self.units[i].initializeUnit(1728)
+
     for idxFilter in range(nTotalFilters):
       # the filter is firstly made flat
       # the axes are swapped to made it accross features first 
