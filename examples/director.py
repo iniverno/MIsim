@@ -1,3 +1,11 @@
+##################################################################################3
+#
+#      Jorge Albericio, 2015
+#      jorge@ece.utoronto.ca
+#
+##################################################################################
+
+
 import numpy as np
 import unit
 import cluster
@@ -83,10 +91,10 @@ class LayerDirector:
           
     if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
  
-    # TODO: in the baseline, all the units have to process every window
-    # the solution to deal with the new system and how it slices computation,
-    # will be to add clusterDirector that will take care of slicing the computation 
-    # among the narrow units conforming a cluster  
+
+##################################################################################
+###
+##################################################################################
 
   def processDataFromUnits(self, unitID):
     if self.VERBOSE: print "director callback for unit #%d"%(unitID) 

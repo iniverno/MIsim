@@ -1,3 +1,10 @@
+##################################################################################3
+#
+#      Jorge Albericio, 2015
+#      jorge@ece.utoronto.ca
+#
+##################################################################################
+
 import numpy as np
 import math
 class Unit:
@@ -28,14 +35,21 @@ class Unit:
     #These pointers are used when computing the data in the buffers (compute function)
     self.windowPointer = 0  #it tracks the next filter to compute
 
+
+##################################################################################
+###
+##################################################################################
+ 
   # this function assigns SB with the right shape according to the filter size
   def initialize(self, filterSize):
     nFiltersFit = self.SB_size / filterSize
     self.SB_data = np.zeros((nFiltersFit, filterSize))
 
-  # TODO: what happens if the computation is broken in subbricks ????
+##################################################################################
+###
   # filterData: list of a 1D ndarrays containing the filter data flat
   # filterIndexes: list containing filter indexes 
+##################################################################################
   def fill_SB(self, filterData, filterIndexes):
     filterIndexes = [filterIndexes]
     filterData = [filterData]
@@ -60,12 +74,20 @@ class Unit:
       # update the available space
       self.SB_available -= filterSize 
 
+##################################################################################
+###
+##################################################################################
+ 
   def fill_NBin(self, inputData, offsets = []):
     assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
     assert self.NBin_data.size >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
     self.NBin_data = inputData 
 
+##################################################################################
+###
+##################################################################################
+ 
   def compute(self):
     if self.VERBOSE: print "unit #%d (cluster %d) computing"%(self.unitID, self.clusterID)
     # there are Ti * Tn multipliers available meaning that Ti elements from Tn filters (I know, review naming)
