@@ -1,5 +1,6 @@
 import numpy as np
 import unit
+import cluster
 
 class LayerDirector:
 
@@ -13,11 +14,9 @@ class LayerDirector:
     self.Tn = Tn
     self.Ti = Ti
     self.NBin_nEntries = NBin_nEntries
-    self.windowsDataFlat = {}
-    self.filtersToUnits = {}
-    self.unitToWindow = {}
+    self.clustersProcWindow = {}
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(self.nUnitsCluster, Ti, Tn, NBin_nEntries)
+      self.clusters.append(cluster.Cluster(i, self.nUnitsCluster, Ti, Tn, NBin_nEntries))
 
 ##################################################################################
 ###
@@ -80,7 +79,7 @@ class LayerDirector:
     #while self.clustersProcWindow[windowID] > 0:
     for cntCluster in range(self.nClusters):
       if not self.clusters[cntCluster].busy:
-        self.clusters[cntCluster].processWindow(windowData)
+        self.clusters[cntCluster].processWindow(windowData, windowID)
           
     if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
  

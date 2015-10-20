@@ -6,7 +6,8 @@ class Unit:
   Ti = 16
   Tn = 16
 
-  def __init__(self, verbose, uid, NBin_nEntries, Ti, Tn, SB_size, directorCallback):
+  def __init__(self, verbose, clusterID, uid, NBin_nEntries, Ti, Tn, SB_size, directorCallback):
+    self.clusterID = clusterID
     self.unitID = uid
     self.VERBOSE = verbose
     self.NBin_nEntries = NBin_nEntries
@@ -36,6 +37,9 @@ class Unit:
   # filterData: list of a 1D ndarrays containing the filter data flat
   # filterIndexes: list containing filter indexes 
   def fill_SB(self, filterData, filterIndexes):
+    filterIndexes = [filterIndexes]
+    filterData = [filterData]
+
     for i,e in enumerate(filterIndexes):
       filterSize = filterData[i].size
       nFilters = len(filterIndexes)
@@ -44,7 +48,7 @@ class Unit:
       assert filterSize  <= self.SB_available, "The filters being loaded in SB of unit %d are too big (%d vs. %d available)"%(self.unitID, filterSize, self.SB_size)
 
       if self.VERBOSE:
-        print "SB in unit %d is now storing filter #%d"%(self.unitID, e)
+        print "SB in unit %d (cluster %d) is now storing filter #%d"%(self.unitID, self.clusterID, e)
       # store the filter data at the proper position
       self.SB_data[self.SB_nextFilterIdx] = filterData[i]
 
@@ -63,7 +67,7 @@ class Unit:
     self.NBin_data = inputData 
 
   def compute(self):
-    if self.VERBOSE: print "unit #%d computing"%(self.unitID)
+    if self.VERBOSE: print "unit #%d (cluster %d) computing"%(self.unitID, self.clusterID)
     # there are Ti * Tn multipliers available meaning that Ti elements from Tn filters (I know, review naming)
     # There are NBin_nEntries which have to be combined with all the filters
 
@@ -84,7 +88,7 @@ class Unit:
         for f in range(self.Tn):
           filterNow = t * self.Tn + f
           if self.VERBOSE:
-            print 'unit %d, NBin entry %d, computing filter #%d, pos %d-%d %d'%(self.unitID, e, self.SB_entryToFilterID[filterNow], localWindowPointer , localWindowPointer + self.Ti, t * self.Tn + f)
+            print 'unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d'%(self.unitID, self.clusterID, e, self.SB_entryToFilterID[filterNow], localWindowPointer , localWindowPointer + self.Ti, t * self.Tn + f)
           SB_head[f] = self.SB_data[filterNow] [localWindowPointer : localWindowPointer + self.Ti]
         localWindowPointer += self.Ti
 
