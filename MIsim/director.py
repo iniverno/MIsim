@@ -19,20 +19,17 @@ class LayerDirector:
     self.clusters = []
     self.nClusters = nClusters
     self.nUnitsCluster = nTotalUnits / nClusters
-    self.Tn = Tn
-    self.Ti = Ti
-    self.NBin_nEntries = NBin_nEntries
     self.clustersProcWindow = {}
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(i, self.nUnitsCluster, Ti, Tn, NBin_nEntries))
+      self.clusters.append(cluster.Cluster(i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20)))
 
 ##################################################################################
 ###
-### windowID: 
-###  
+### This function copy the filter weights into the unit eDRAM
+###
+### weights: ndarray containing the weights of the filters  
 ###
 ##################################################################################
-  # this function copy the filter weights into the unit eDRAM
   def initializeLayer(self, weights):
     nTotalFilters = weights.shape[0]
     #how many filters have to go to each cluster

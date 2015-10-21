@@ -10,9 +10,10 @@ import numpy as np
 import unit 
 
 class Cluster:
-  def __init__(self, clusterID, nUnits, Ti, Tn, NBin_nEntries):
+  def __init__(self, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster):
     self.VERBOSE = True
     self.clusterID = clusterID
+    self.SB_sizeCluster = SB_sizeCluster
     self.units = []
     self.nUnits = nUnits
     self.Tn = Tn
@@ -25,7 +26,7 @@ class Cluster:
     self.filtersToUnits = {}
     self.unitToWindow = {}
     for i in range(nUnits):
-      self.units.append(unit.Unit(True, clusterID, i, NBin_nEntries, Ti, Tn, (1<<20), self.processDataFromUnits))
+      self.units.append(unit.Unit(True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.processDataFromUnits))
 
   # this function receives the filter complete and it divides it among the units in the cluster
   def fill_SB(self, filterData, filterID):
