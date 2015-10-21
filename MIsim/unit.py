@@ -111,19 +111,20 @@ class Unit:
         print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
        
     # NBin_ptr is incremented
-    if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti):
+    if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
       self.NBin_ptr += 1
       self.localWindowPointer += self.Ti
     else:
       self.NBin_ptr = 0
       self.filtersProcessed += self.filtersToProcess
       self.filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed)
+      self.localWindowPointer = self.windowPointer
 
       if self.NBout_ptr < self.NBout_nEntries - 1:
         self.NBout_ptr += 1
-        self.localWindowPointer = self.windowPointer
       else:
-        self.windowPointer += min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
+        self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
+        self.localWindowPointer = self.windowPointer 
         self.busy = False
 
 ##################################################################################
