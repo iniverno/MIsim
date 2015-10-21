@@ -100,21 +100,26 @@ class Unit:
     NB_head = np.zeros((self.Ti))
 
     
-    NBout_nEntries = int(math.ceil((self.SB_nextFilterIdx ) / self.Tn))
+    NBout_nEntries = int(math.ceil(self.SB_nextFilterIdx  / float(self.Tn)))
+    self.filtersProcessed = 0
+ 
     if self.VERBOSE: print "%d reuses of each input data (idx %d, SBdata %d, Tn %d) "%(NBout_nEntries, self.SB_nextFilterIdx, self.SB_data.size, self.Tn)
-
 
     for t in range( NBout_nEntries):
       localWindowPointer = self.windowPointer
       for e in range(min(self.NBin_nEntries, self.NBin_data.size / self.Ti)):
         NB_head = self.NBin_data[e * self.Ti : e * self.Ti + self.Ti]
-        # for each filter that fits     
-        for f in range(self.Tn):
+        # for each filter that fits
+        filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed)     
+        for f in range(filtersToProcess):
           filterNow = t * self.Tn + f
-          if self.VERBOSE:
-            print 'unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d'%(self.unitID, self.clusterID, e, self.SB_entryToFilterID[filterNow], localWindowPointer , localWindowPointer + self.Ti, t * self.Tn + f)
           SB_head[f] = self.SB_data[filterNow] [localWindowPointer : localWindowPointer + self.Ti]
+         
+          if self.VERBOSE:
+            print 'unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.unitID, self.clusterID, e, self.SB_entryToFilterID[filterNow], localWindowPointer , localWindowPointer + self.Ti, t * self.Tn + f, t)
+       
         localWindowPointer += self.Ti
+      self.filtersProcessed += self.Tn
 
     # Update the filter skipping all the elements already processed 
     self.windowPointer += min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
