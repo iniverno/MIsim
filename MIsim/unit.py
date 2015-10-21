@@ -9,11 +9,9 @@ import numpy as np
 import math
 class Unit:
   """This is the class which represents a single processing pipeline"""
-  NBin_num_entries = 16
-  Ti = 16
-  Tn = 16
 
-  def __init__(self, verbose, clusterID, uid, NBin_nEntries, Ti, Tn, SB_size, directorCallback):
+  def __init__(self, system, verbose, clusterID, uid, NBin_nEntries, Ti, Tn, SB_size, directorCallback):
+    self.system = system
     self.clusterID = clusterID
     self.unitID = uid
     self.VERBOSE = verbose
@@ -79,18 +77,61 @@ class Unit:
 ##################################################################################
  
   def fill_NBin(self, inputData, offsets = []):
-    assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
+    #assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
     assert self.NBin_data.size >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
     if self.VERBOSE:
       print "fill_NBin in unit #%d (%d elements)"%(self.unitID, inputData.size)
     self.NBin_data = inputData 
 
+    # some initialization tasks to prepare the unit to process data
+    self.NBout_nEntries = int(math.ceil(self.SB_nextFilterIdx  / float(self.Tn)))
+    self.NBout_ptr = 0
+    self.NBin_ptr = 0
+
+    self.localWindowPointer = self.windowPointer
+
+    self.filtersProcessed = 0
+    self.filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed) 
+
+    #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
+    self.busy = True
+
 ##################################################################################
 ###
 ##################################################################################
- 
+  def computeCycle(self):
+  
+    print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
+
+    for f in range(self.filtersToProcess):  
+      filterNow = self.NBout_ptr * self.Tn + f
+
+      if self.VERBOSE and False:
+        print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
+       
+    # NBin_ptr is incremented
+    if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti):
+      self.NBin_ptr += 1
+      self.localWindowPointer += self.Ti
+    else:
+      self.NBin_ptr = 0
+      self.filtersProcessed += self.filtersToProcess
+      self.filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed)
+
+      if self.NBout_ptr < self.NBout_nEntries - 1:
+        self.NBout_ptr += 1
+        self.localWindowPointer = self.windowPointer
+      else:
+        self.windowPointer += min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
+        self.busy = False
+
+##################################################################################
+###
+##################################################################################
+     
   def compute(self):
+    self.computeCycle()
     if self.VERBOSE: print "unit #%d (cluster %d) computing"%(self.unitID, self.clusterID)
     # there are Ti * Tn multipliers available meaning that Ti elements from Tn filters (I know, review naming)
     # There are NBin_nEntries which have to be combined with all the filters
@@ -119,7 +160,7 @@ class Unit:
             print 'unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.unitID, self.clusterID, e, self.SB_entryToFilterID[filterNow], localWindowPointer , localWindowPointer + self.Ti, t * self.Tn + f, t)
        
         localWindowPointer += self.Ti
-      self.filtersProcessed += self.Tn
+      self.filtersProcessed += filtersToProcess
 
     # Update the filter skipping all the elements already processed 
     self.windowPointer += min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 

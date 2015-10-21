@@ -15,6 +15,7 @@ class LayerDirector:
   verboseUnits = True
 
   def __init__(self, nClusters, nTotalUnits, Ti, Tn, NBin_nEntries):
+    self.cycle = 0
     self.VERBOSE = True
     self.clusters = []
     self.nClusters = nClusters
@@ -22,7 +23,7 @@ class LayerDirector:
     self.nUnitsCluster = nTotalUnits / nClusters
     self.clustersProcWindow = {}
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20)))
+      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20)))
 
 ##################################################################################
 ###
@@ -76,13 +77,15 @@ class LayerDirector:
     auxWindow = np.zeros((192, 3, 3))
     # process each window
     self.initializeWindow(auxWindow, 17)
-    self.processWindow(auxWindow, 17)
+    while self.processWindowCycle(auxWindow, 17):
+      self.cycle += 1
+      pass
 
 ##################################################################################
 ###
 ##################################################################################
   def initializeWindow(self, windowData, windowID):
-    if self.VERBOSE: print "Initializing window #%d"%(windowID)
+    if self.VERBOSE: print "[director] Initializing window #%d"%(windowID)
 
     #self.windowsDataFlat[windowID] = np.swapaxes(windowData, 0, 2).flatten()
     self.clustersProcWindow[windowID] = self.nClusters
@@ -94,15 +97,17 @@ class LayerDirector:
 ###
 ##################################################################################
 
-  def processWindow(self, windowData, windowID):
-    if self.VERBOSE: print "Processing of window #%d"%(windowID)
+  def processWindowCycle(self, windowData, windowID):
+    if self.VERBOSE: print "[director] Processing of window #%d"%(windowID)
 
-    #while self.clustersProcWindow[windowID] > 0:
-    for cntCluster in range(self.nClusters):
-      if not self.clusters[cntCluster].busy:
-        self.clusters[cntCluster].processWindow(windowData, windowID)
-          
-    if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
+    if self.clustersProcWindow[windowID] > 0:
+      for cntCluster in range(self.nClusters):
+        if not self.clusters[cntCluster].processWindowCycle(windowData, windowID):
+          #this means there is not unit in that cluster processing the window   
+          self.clustersProcWindow[windowID] -= 1            
+    return self.clustersProcWindow[windowID] > 0
+    
+    #if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
  
 
 ##################################################################################

@@ -10,7 +10,8 @@ import numpy as np
 import unit 
 
 class Cluster:
-  def __init__(self, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster):
+  def __init__(self, system, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster):
+    self.system = system
     self.VERBOSE = True
     self.clusterID = clusterID
     self.SB_sizeCluster = SB_sizeCluster
@@ -26,8 +27,12 @@ class Cluster:
     self.filtersToUnits = {}
     self.unitToWindow = {}
     for i in range(nUnits):
-      self.units.append(unit.Unit(True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.processDataFromUnits))
+      self.units.append(unit.Unit(system, True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.processDataFromUnits))
 
+##################################################################################
+###
+##################################################################################
+ 
   # this function receives the filter complete and it divides it among the units in the cluster
   def fill_SB(self, filterData, filterID):
     featsUnit = filterData.shape[0] / self.nUnits
@@ -42,12 +47,18 @@ class Cluster:
       self.units[cntUnit].fill_SB(filterSegmentFlat, filterID) 
       #np.delete(filterSegment)
 
-
+##################################################################################
+###
+##################################################################################
+ 
   def initialize(self, size):
       #configure the size of SB at the unit
     for cntUnit in range(self.nUnits):      
       self.units[cntUnit].initialize(size / self.nUnits) 
-
+##################################################################################
+###
+##################################################################################
+ 
   def initializeWindow(self, windowData, windowID):
     self.windowID = windowID
     self.unitsProcWindow = self.nUnits
@@ -59,8 +70,11 @@ class Cluster:
       self.subWindowDataFlat[cntUnit] = np.swapaxes(self.subWindowDataFlat[cntUnit], 0, 2).flatten()
 
 
-  def processWindow(self, windowData, windowID):
-    if self.VERBOSE: print "Processing of window #%d in cluster #%d"%(windowID, self.clusterID) 
+##################################################################################
+###
+##################################################################################
+  def processWindowCycle(self, windowData, windowID):
+    if 0 and self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.cycle, windowID, self.clusterID) 
 
     # this will probably change when units are asynch
     nElements = self.Ti * self.NBin_nEntries
@@ -69,21 +83,30 @@ class Cluster:
     # each unit in the cluster has to process the subwindow
     # this processing can be synchronous or asynch
     # let's consider synch first
-    while self.unitsProcWindow > 0: 
+    if self.unitsProcWindow > 0: 
       for cntUnit in range(self.nUnits):
         if not self.units[cntUnit].busy:
           auxPos = self.unitLastPosInWindow[cntUnit][1]
           
           self.units[cntUnit].fill_NBin(self.subWindowDataFlat[cntUnit][auxPos : min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)])
-          print 'SIZE: %d %d'%(auxPos + nElements, self.subWindowDataFlat[cntUnit].size) 
 
-          self.units[cntUnit].compute()
+          #functional
+          #self.units[cntUnit].compute()
 
           # increase pointer indicating last processed element
           self.unitLastPosInWindow[cntUnit][1] += nElements
             
           if self.unitLastPosInWindow[cntUnit][1] >= self.subWindowDataFlat[cntUnit].size:
-              self.unitsProcWindow -= 1
-          
+            self.unitsProcWindow -= 1
+
+        else: #if unit is busy means it has stuff to do --> invoke its compute function
+          self.units[cntUnit].computeCycle()
+      return True
+    else: #no units processing the window
+      return False
+ ##################################################################################
+###
+##################################################################################
+    
   def processDataFromUnits(self, unitID):
     if self.VERBOSE: print "director callback for unit #%d"%(unitID) 
