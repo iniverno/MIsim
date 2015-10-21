@@ -76,6 +76,9 @@ class Cluster:
   def processWindowCycle(self, windowData, windowID):
     if 0 and self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.cycle, windowID, self.clusterID) 
 
+    # this function has to be changed
+    # here is where the synchronism model for the cluster is established
+
     # this will probably change when units are asynch
     nElements = self.Ti * self.NBin_nEntries
 
@@ -85,11 +88,13 @@ class Cluster:
     # let's consider synch first
     if self.unitsProcWindow > 0: 
       for cntUnit in range(self.nUnits):
+        processData = False
         if not self.units[cntUnit].busy:
           auxPos = self.unitLastPosInWindow[cntUnit][1]
           
           self.units[cntUnit].fill_NBin(self.subWindowDataFlat[cntUnit][auxPos : min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)])
 
+          processData = True
           #functional
           #self.units[cntUnit].compute()
 
@@ -99,7 +104,7 @@ class Cluster:
           if self.unitLastPosInWindow[cntUnit][1] >= self.subWindowDataFlat[cntUnit].size:
             self.unitsProcWindow -= 1
 
-        else: #if unit is busy means it has stuff to do --> invoke its compute function
+        if processData: #if unit is busy means it has stuff to do --> invoke its compute function
           self.units[cntUnit].computeCycle()
       return True
     else: #no units processing the window
