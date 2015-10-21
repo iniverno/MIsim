@@ -18,6 +18,7 @@ class LayerDirector:
     self.VERBOSE = True
     self.clusters = []
     self.nClusters = nClusters
+    self.Tn = Tn  # it is used when assigning filters to clusters
     self.nUnitsCluster = nTotalUnits / nClusters
     self.clustersProcWindow = {}
     for i in range(nClusters):
@@ -43,12 +44,27 @@ class LayerDirector:
     for i in range(self.nClusters): 
       self.clusters[i].initialize(weights[0].size)
 
-    for idxFilter in range(nTotalFilters):
-      self.clusters[(idxFilter / self.nClusters) % self.nClusters].fill_SB(weights[idxFilter], idxFilter)
+    ##for idxFilter in range(nTotalFilters):
+      ##self.clusters[(idxFilter / self.nClusters) % self.nClusters].fill_SB(weights[idxFilter], idxFilter)
+    
+    filtersAssignedSoFar = 0
+    idxFilter = 0
+    cntCluster = 0
+
+    while filtersAssignedSoFar < nFiltersPerCluster:
+      cntFilterCluster = 0
+      while cntFilterCluster < min(self.Tn, nFiltersPerCluster-filtersAssignedSoFar ): 
+        self.clusters[cntCluster].fill_SB(weights[idxFilter], idxFilter)
+        cntFilterCluster += 1
+        idxFilter += 1
+      cntCluster += 1
+      if cntCluster == self.nClusters:
+        filtersAssignedSoFar += cntFilterCluster
+        cntCluster = 0
+      #print '%d %d %d %d %d'%(nFiltersPerCluster, filtersAssignedSoFar, cntFilterCluster, self.Tn, self.nClusters)
 
 ##################################################################################
 ###
-### windowID: 
 ###  
 ###
 ##################################################################################

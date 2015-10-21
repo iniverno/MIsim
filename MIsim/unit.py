@@ -82,6 +82,8 @@ class Unit:
     assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
     assert self.NBin_data.size >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
+    if self.VERBOSE:
+      print "fill_NBin in unit #%d (%d elements)"%(self.unitID, inputData.size)
     self.NBin_data = inputData 
 
 ##################################################################################
