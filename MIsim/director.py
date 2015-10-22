@@ -5,7 +5,7 @@
 #
 ##################################################################################
 
-import sortedcontainters
+from sortedcontainers import SortedDict
 import numpy as np
 import unit
 import cluster
@@ -17,8 +17,8 @@ class LayerDirector:
   def __init__(self, nClusters, nTotalUnits, Ti, Tn, NBin_nEntries):
 
     #schedule
-    self.wakeQ = sortedcontainers.SortedDict()
-    self.cycle = 0
+    self.wakeQ = SortedDict()
+    self.now = 0
 
     #components
     self.VERBOSE = True
@@ -32,7 +32,7 @@ class LayerDirector:
 
 
   def schedule(self, entity, when = 1):
-    when += self.cycle
+    when += self.now
     if when in self.wakeQ:
       self.wakeQ[when].add(entity)
     else:
@@ -40,11 +40,10 @@ class LayerDirector:
 
 
   def cycle(self):
-    
-    now, entities = self.wakeQ.popitem(False)
-    print "layerdirector, cycle ", now, len(entities), " objects to wakeup"
-    self.cycle = now
-    for obj in entitites:
+    entities = [] 
+    self.now, entities = self.wakeQ.popitem(False)
+    print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
+    for obj in entities:
       obj.cycle()
 
 
@@ -102,7 +101,7 @@ class LayerDirector:
     
     # process each window
     self.initializeWindow(auxWindow, windowID)
-    startWindowProcessing(auxWindow, windowID)
+    self.startWindowProcessing(auxWindow, windowID)
 
     while self.clustersProcWindow[windowID] > 0:
       self.cycle()

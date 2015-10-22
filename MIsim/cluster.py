@@ -67,7 +67,7 @@ class Cluster:
  
   def initializeWindow(self, windowData, windowID):
     self.windowID = windowID
-    self.unitsProcWindow = self.nUnits
+    self.unitsProcWindow[self.windowID] = self.nUnits
     featsUnit = windowData.shape[0] / self.nUnits 
 
     for cntUnit in range(self.nUnits): 
@@ -79,8 +79,8 @@ class Cluster:
 ##################################################################################
 ###
 ##################################################################################
-  def cycle(self, windowData, windowID):
-    if 0 and self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.cycle, windowID, self.clusterID) 
+  def cycle(self):
+    if 0 and self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.now, windowID, self.clusterID) 
 
     # this will probably change when units are asynch
     nElements = self.Ti * self.NBin_nEntries
@@ -89,7 +89,7 @@ class Cluster:
     # each unit in the cluster has to process the subwindow
     # this processing can be synchronous or asynch
     # let's consider synch first
-    if self.unitsProcWindow > 0: 
+    if self.unitsProcWindow[self.windowID] > 0: 
       for cntUnit in range(self.nUnits):
         if not self.units[cntUnit].busy:
           #this cluster is busy because there is some unit working
@@ -99,7 +99,7 @@ class Cluster:
            
           self.units[cntUnit].fill_NBin(self.subWindowDataFlat[cntUnit][auxPos : min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)])
 
-          system.schedule(self.units[cntUnit])
+          self.system.schedule(self.units[cntUnit])
 
           #functional
           #self.units[cntUnit].compute()
@@ -116,7 +116,7 @@ class Cluster:
     if self.units[unitID].windowPointer >= self.subWindowDataFlat[unitID].size:
       self.unitsProcWindow[self.windowID] -= 1
       if self.unitsProcWindow[self.windowID] == 0:
-        self.callbackClusterDone(self.clusterID, windowID)
+        self.callbackClusterDone(self.clusterID, self.windowID)
     else:  
     # the unit did not finish the window so next cycle we will fill its NBin
     # if we wanted to allow processing more than one window in a cluster, this synch point should 

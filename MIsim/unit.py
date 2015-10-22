@@ -10,7 +10,7 @@ import math
 class Unit:
   """This is the class which represents a single processing pipeline"""
 
-  def __init__(self, system, verbose, clusterID, uid, NBin_nEntries, Ti, Tn, SB_size, directorCallback):
+  def __init__(self, system, verbose, clusterID, uid, NBin_nEntries, Ti, Tn, SB_size, callbackUnitDone):
     self.system = system
     self.clusterID = clusterID
     self.unitID = uid
@@ -36,8 +36,6 @@ class Unit:
     self.windowPointer = 0  #it tracks the next filter to compute
 
 
-  def cycle(self):
-    print "unit ", self.unitID, " cycle:", self.system.cycle
 
 ##################################################################################
 ###
@@ -110,14 +108,14 @@ class Unit:
 ##################################################################################
   def cycle(self):
   
-    if NBin_ready:
-      print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
+    if self.NBin_ready:
+      print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
 
         if self.VERBOSE and False:
-          print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
+          print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
          
       # NBin_ptr is incremented
       if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
@@ -132,9 +130,15 @@ class Unit:
         if self.NBout_ptr < self.NBout_nEntries - 1:
           self.NBout_ptr += 1
         else:
+        #the unit is done with this chunk
           self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
-          self.localWindowPointer = self.windowPointer 
+          self.localWindowPointer = self.windowPointer
+ 
+          self.callbackUnitDone(self.unitID)
           self.busy = False
+
+      if self.busy:
+        self.system.schedule(self)
     # end of NBin_ready
 
 
