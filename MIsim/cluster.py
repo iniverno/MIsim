@@ -87,7 +87,7 @@ class Cluster:
       for cntUnit in range(self.nUnits):
         if not self.units[cntUnit].busy:
           auxPos = self.unitLastPosInWindow[cntUnit][1]
-         
+           
           self.units[cntUnit].fill_NBin(self.subWindowDataFlat[cntUnit][auxPos : min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)])
 
           #functional
@@ -100,7 +100,8 @@ class Cluster:
           self.units[cntUnit].computeCycle()
         
           # window finished ?
-          if self.unitLastPosInWindow[cntUnit][1] >= self.subWindowDataFlat[cntUnit].size:
+          #if self.unitLastPosInWindow[cntUnit][1] >= self.subWindowDataFlat[cntUnit].size:
+          if self.units[cntUnit].windowPointer >= self.subWindowDataFlat[cntUnit].size:
             self.unitsProcWindow -= 1
 
       return True
