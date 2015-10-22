@@ -5,7 +5,7 @@
 #
 ##################################################################################
 
-
+import sortedcontainters
 import numpy as np
 import unit
 import cluster
@@ -15,7 +15,12 @@ class LayerDirector:
   verboseUnits = True
 
   def __init__(self, nClusters, nTotalUnits, Ti, Tn, NBin_nEntries):
+
+    #schedule
+    self.wakeQ = sortedcontainers.SortedDict()
     self.cycle = 0
+
+    #components
     self.VERBOSE = True
     self.clusters = []
     self.nClusters = nClusters
@@ -23,7 +28,23 @@ class LayerDirector:
     self.nUnitsCluster = nTotalUnits / nClusters
     self.clustersProcWindow = {}
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20)))
+      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20), self.callbackClusterDone))
+
+
+  def schedule(self, entity, when = 1):
+    when += self.cycle
+    if when in self.wakeQ:
+      self.wakeQ[when].add(entity)
+    else:
+      self.wakeQ[when] = set([entity])
+
+
+  def cycle(self):
+    self.cycle += 1
+    
+    now, entities = self.wakeQ.popitem(False)
+    print "layerdirector, cycle ", now, len(entities), " objects to wakeup"
+
 
 ##################################################################################
 ###
@@ -108,7 +129,9 @@ class LayerDirector:
     return self.clustersProcWindow[windowID] > 0
     
     #if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
- 
+
+  def callbackClusterDone(self, clusterID, windowID):
+    self.clustersProcWindow[windowID] -= 1 
 
 ##################################################################################
 ###

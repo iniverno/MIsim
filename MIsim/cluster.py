@@ -10,8 +10,9 @@ import numpy as np
 import unit 
 
 class Cluster:
-  def __init__(self, system, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster):
+  def __init__(self, system, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster, callbackClusterDone):
     self.system = system
+    self.callbackClusterDone = callbackClusterDone
     self.VERBOSE = True
     self.clusterID = clusterID
     self.SB_sizeCluster = SB_sizeCluster
@@ -19,15 +20,16 @@ class Cluster:
     self.nUnits = nUnits
     self.Tn = Tn
     self.Ti = Ti
+    self.windowID = 0
     self.NBin_nEntries = NBin_nEntries
-    self.busy = 0
+    self.busy = False
     self.unitLastPosInWindow = np.zeros((nUnits, 2))  #it records the last position of the actual window that was sent to each unit (nWindow, pos)
     self.subWindowDataFlat = {}
     self.unitsProcWindow = {}
     self.filtersToUnits = {}
     self.unitToWindow = {}
     for i in range(nUnits):
-      self.units.append(unit.Unit(system, True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.processDataFromUnits))
+      self.units.append(unit.Unit(system, True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.callbackUnitDone))
 
 ##################################################################################
 ###
@@ -73,7 +75,7 @@ class Cluster:
 ##################################################################################
 ###
 ##################################################################################
-  def processWindowCycle(self, windowData, windowID):
+  def cycle(self, windowData, windowID):
     if 0 and self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.cycle, windowID, self.clusterID) 
 
     # this will probably change when units are asynch
@@ -90,26 +92,23 @@ class Cluster:
            
           self.units[cntUnit].fill_NBin(self.subWindowDataFlat[cntUnit][auxPos : min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)])
 
+          system.schedule(self.units[cntUnit])
+
           #functional
           #self.units[cntUnit].compute()
 
           # increase pointer indicating last processed element
           self.unitLastPosInWindow[cntUnit][1] += nElements
             
-        else: #if unit is busy means it has stuff to do --> invoke its compute function
-          self.units[cntUnit].computeCycle()
-        
-          # window finished ?
-          #if self.unitLastPosInWindow[cntUnit][1] >= self.subWindowDataFlat[cntUnit].size:
-          if self.units[cntUnit].windowPointer >= self.subWindowDataFlat[cntUnit].size:
-            self.unitsProcWindow -= 1
-
-      return True
-    else: #no units processing the window
-      return False
- ##################################################################################
+##################################################################################
 ###
 ##################################################################################
     
-  def processDataFromUnits(self, unitID):
+  def callbackUnitDone(self, unitID):
+    #check if the unit has finished processing the window
+    if self.units[unitID].windowPointer >= self.subWindowDataFlat[unitID].size:
+      self.unitsProcWindow[self.windowID] -= 1
+      if self.unitsProcWindow[self.windowID] == 0:
+        self.callbackClusterDone(self.clusterID, windowID)
+            
     if self.VERBOSE: print "director callback for unit #%d"%(unitID) 

@@ -19,9 +19,10 @@ class Unit:
     self.Ti = Ti
     self.Tn = Tn
     self.busy = False
-    self.directorCallbackWhenReady = directorCallback
+    self.callbackUnitDone = callbackUnitDone
 
     #instance variables 
+    self.SB_ready = False
     self.SB_size = SB_size
     self.SB_available = SB_size
     self.SB_nextFilterIdx = 0
@@ -29,10 +30,14 @@ class Unit:
     self.SB_entryToFilterID = {}
     self.SB_data = 0 # initializeUnit will assign this var properly according to the filters of the layer
     self.NBin_data = np.zeros((Ti, NBin_nEntries))
+    self.NBin_ready = False
 
     #These pointers are used when computing the data in the buffers (compute function)
     self.windowPointer = 0  #it tracks the next filter to compute
 
+
+  def cycle(self):
+    print "unit ", self.unitID, " cycle:", self.system.cycle
 
 ##################################################################################
 ###
@@ -72,6 +77,8 @@ class Unit:
       # update the available space
       self.SB_available -= filterSize 
 
+    self.SB_ready = True
+
 ##################################################################################
 ###
 ##################################################################################
@@ -96,36 +103,40 @@ class Unit:
 
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True
+    self.NBin_ready = True 
 
 ##################################################################################
 ###
 ##################################################################################
-  def computeCycle(self):
+  def cycle(self):
   
-    print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
+    if NBin_ready:
+      print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
-    for f in range(self.filtersToProcess):  
-      filterNow = self.NBout_ptr * self.Tn + f
+      for f in range(self.filtersToProcess):  
+        filterNow = self.NBout_ptr * self.Tn + f
 
-      if self.VERBOSE and False:
-        print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
-       
-    # NBin_ptr is incremented
-    if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
-      self.NBin_ptr += 1
-      self.localWindowPointer += self.Ti
-    else:
-      self.NBin_ptr = 0
-      self.filtersProcessed += self.filtersToProcess
-      self.filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed)
-      self.localWindowPointer = self.windowPointer
-
-      if self.NBout_ptr < self.NBout_nEntries - 1:
-        self.NBout_ptr += 1
+        if self.VERBOSE and False:
+          print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.cycle, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
+         
+      # NBin_ptr is incremented
+      if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
+        self.NBin_ptr += 1
+        self.localWindowPointer += self.Ti
       else:
-        self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
-        self.localWindowPointer = self.windowPointer 
-        self.busy = False
+        self.NBin_ptr = 0
+        self.filtersProcessed += self.filtersToProcess
+        self.filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed)
+        self.localWindowPointer = self.windowPointer
+
+        if self.NBout_ptr < self.NBout_nEntries - 1:
+          self.NBout_ptr += 1
+        else:
+          self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
+          self.localWindowPointer = self.windowPointer 
+          self.busy = False
+    # end of NBin_ready
+
 
 ##################################################################################
 ###
