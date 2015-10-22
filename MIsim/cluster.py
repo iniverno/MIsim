@@ -11,18 +11,22 @@ import unit
 
 class Cluster:
   def __init__(self, system, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster, callbackClusterDone):
+    # cluster things 
     self.system = system
     self.callbackClusterDone = callbackClusterDone
     self.VERBOSE = True
     self.clusterID = clusterID
+    self.busy = False
+
+    self.windowID = 0
+
+    #The units
     self.SB_sizeCluster = SB_sizeCluster
     self.units = []
     self.nUnits = nUnits
     self.Tn = Tn
     self.Ti = Ti
-    self.windowID = 0
     self.NBin_nEntries = NBin_nEntries
-    self.busy = False
     self.unitLastPosInWindow = np.zeros((nUnits, 2))  #it records the last position of the actual window that was sent to each unit (nWindow, pos)
     self.subWindowDataFlat = {}
     self.unitsProcWindow = {}
@@ -88,6 +92,9 @@ class Cluster:
     if self.unitsProcWindow > 0: 
       for cntUnit in range(self.nUnits):
         if not self.units[cntUnit].busy:
+          #this cluster is busy because there is some unit working
+          self.busy = True
+
           auxPos = self.unitLastPosInWindow[cntUnit][1]
            
           self.units[cntUnit].fill_NBin(self.subWindowDataFlat[cntUnit][auxPos : min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)])
@@ -110,5 +117,10 @@ class Cluster:
       self.unitsProcWindow[self.windowID] -= 1
       if self.unitsProcWindow[self.windowID] == 0:
         self.callbackClusterDone(self.clusterID, windowID)
+    else:  
+    # the unit did not finish the window so next cycle we will fill its NBin
+    # if we wanted to allow processing more than one window in a cluster, this synch point should 
+    # be moved to the cycle function
+      self.system.schedule(self)
             
     if self.VERBOSE: print "director callback for unit #%d"%(unitID) 

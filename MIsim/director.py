@@ -40,10 +40,12 @@ class LayerDirector:
 
 
   def cycle(self):
-    self.cycle += 1
     
     now, entities = self.wakeQ.popitem(False)
     print "layerdirector, cycle ", now, len(entities), " objects to wakeup"
+    self.cycle = now
+    for obj in entitites:
+      obj.cycle()
 
 
 ##################################################################################
@@ -95,12 +97,15 @@ class LayerDirector:
     self.initializeLayer(filterWeights)
 
     # generate windows
+    windowID = 17
     auxWindow = np.zeros((192, 3, 3))
+    
     # process each window
-    self.initializeWindow(auxWindow, 17)
-    while self.processWindowCycle(auxWindow, 17):
-      self.cycle += 1
-      pass
+    self.initializeWindow(auxWindow, windowID)
+    startWindowProcessing(auxWindow, windowID)
+
+    while self.clustersProcWindow[windowID] > 0:
+      self.cycle()
 
 ##################################################################################
 ###
@@ -112,31 +117,23 @@ class LayerDirector:
     self.clustersProcWindow[windowID] = self.nClusters
     for cntCluster in range(self.nClusters):
       self.clusters[cntCluster].initializeWindow(windowData, windowID)
-    
 
 ##################################################################################
 ###
 ##################################################################################
 
-  def processWindowCycle(self, windowData, windowID):
+  def startWindowProcessing(self, windowData, windowID):
     if self.VERBOSE: print "[director] Processing of window #%d"%(windowID)
 
-    if self.clustersProcWindow[windowID] > 0:
-      for cntCluster in range(self.nClusters):
-        if not self.clusters[cntCluster].processWindowCycle(windowData, windowID):
-          #this means there is not unit in that cluster processing the window   
-          self.clustersProcWindow[windowID] -= 1            
-    return self.clustersProcWindow[windowID] > 0
-    
-    #if self.VERBOSE: print "It seems window #%d has been processed"%(windowID)
+    for cntCluster in range(self.nClusters):
+      if not self.clusters[cntCluster].busy:
+        self.schedule(self.clusters[cntCluster])
+
+##################################################################################
+###
+##################################################################################
 
   def callbackClusterDone(self, clusterID, windowID):
     self.clustersProcWindow[windowID] -= 1 
 
-##################################################################################
-###
-##################################################################################
 
-  def processDataFromUnits(self, unitID):
-    if self.VERBOSE: print "director callback for unit #%d"%(unitID) 
-     
