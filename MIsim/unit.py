@@ -107,7 +107,11 @@ class Unit:
 ###
 ##################################################################################
   def cycle(self):
-  
+ 
+    #if self.dataAvailable and whenDataAvailable <= self.system.now:
+      # the cluster has to 
+      #self.callbackUnitDone(self.unitID)
+      
     if self.NBin_ready:
       print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
@@ -134,6 +138,8 @@ class Unit:
           self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
           self.localWindowPointer = self.windowPointer
  
+          self.NBin_ready = False # it has to be filled 
+
           self.callbackUnitDone(self.unitID)
           self.busy = False
 

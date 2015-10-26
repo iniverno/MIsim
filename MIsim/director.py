@@ -87,24 +87,64 @@ class LayerDirector:
       #print '%d %d %d %d %d'%(nFiltersPerCluster, filtersAssignedSoFar, cntFilterCluster, self.Tn, self.nClusters)
 
 ##################################################################################
-###
-###  
-###
+# in:
+# 	data : numpy 3D ndarray of dimensions i * Wx * Wy, i=# input features, Wx=Wy= size of input
+#	filters: a list with two elements, we will use the field "data" of both, 
+#		filters[0].data = numpy 4D ndarray  of dimensions N * i * Fx * Fy with the filter values
+#		filters[1].data = numpy 1D vector with the N biases 
+#		N = # filters, Fx=Fy= filter size
 ##################################################################################
-  def computeConvolutional(self, inputData, filterWeights):
-    # initialize the layer
+
+  def computeConvolutionalLayer(self, data, filters, stride, padding, group):
+    weights = filters[0].data
+    biases  = filters[1].data
+    N	  = weights.shape[0]
+    i	  = weights.shape[1]
+    Fx	  = weights.shape[2]
+    Fy	  = weights.shape[3]
+  
+    Ix 	  = data.shape[1]
+    Iy	  = data.shape[2]
+  
+  
+    if padding != 0:
+      data = adjustDataPadding(data, padding)
+      Ix      = data.shape[1]
+      Iy      = data.shape[2]
+  
+  
+    assert weights.shape[1]*group==data.shape[0], "#filters (%d) is not equal to #input features (%d)" %(weights.shape[1], data.shape[0])  
+    assert Ix==Iy, "Input width (%d) is not equal to Input height (%d)" %(data.shape[1], data.shape[2]) 
+    assert Fx==Fy, "Filter width (%d) is not equal to Filter height (%d)" %(Fx, Fy)
+  
+     # initialize the layer (filters are sent to SB in the units)
     self.initializeLayer(filterWeights)
+ 
+    #### Main loop ###
+    # Horizontal shifting for window generation  
+    output = np.zeros((N, (Ix-Fx)/stride+1, (Iy-Fy)/stride+1))
+    windowID = 0
+    outPosX = 0
+    for posInputX in range(0, Ix-Fx+1, stride):
+      outPosY = 0
+      print posInputX
+      for posInputY in range(0, Iy-Fy+1, stride):
 
-    # generate windows
-    windowID = 17
-    auxWindow = np.zeros((192, 3, 3))
+      # process each window
+        auxWindow  = data[:, posInputY:posInputY+Fy, posInputX:posInputX+Fx]
+ 
+        self.initializeWindow(auxWindow, windowID)
+        self.startWindowProcessing(auxWindow, windowID)
     
-    # process each window
-    self.initializeWindow(auxWindow, windowID)
-    self.startWindowProcessing(auxWindow, windowID)
+        while self.clustersProcWindow[windowID] > 0:
+          self.cycle()
+          
+          output[cntFilter, outPosY, outPosX] += biases[cntFilter]
+        outPosY += 1
+      outPosX += 1
+  
+    return output
 
-    while self.clustersProcWindow[windowID] > 0:
-      self.cycle()
 
 ##################################################################################
 ###
