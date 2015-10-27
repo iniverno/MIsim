@@ -7,6 +7,8 @@
 
 import numpy as np
 import math
+import options as op 
+
 class Unit:
   """This is the class which represents a single processing pipeline"""
 
@@ -31,6 +33,9 @@ class Unit:
     self.SB_data = 0 # initializeUnit will assign this var properly according to the filters of the layer
     self.NBin_data = np.zeros((Ti, NBin_nEntries))
     self.NBin_ready = False
+
+    self.NBout = []
+    self.dataAvailable = False
 
     #These pointers are used when computing the data in the buffers (compute function)
     self.windowPointer = 0  #it tracks the next filter to compute
@@ -108,11 +113,13 @@ class Unit:
 ##################################################################################
   def cycle(self):
  
-    #if self.dataAvailable and whenDataAvailable <= self.system.now:
+    if self.dataAvailable and self.whenDataAvailable <= self.system.now:
       # the cluster has to 
-      #self.callbackUnitDone(self.unitID)
+      self.callbackUnitDataReady(self.unitID)
       
     if self.NBin_ready:
+      self.busy = True
+
       print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
       for f in range(self.filtersToProcess):  
@@ -138,12 +145,17 @@ class Unit:
           self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
           self.localWindowPointer = self.windowPointer
  
-          self.NBin_ready = False # it has to be filled 
+          self.NBin_ready = False # no data to process in the buffer
+          self.busy = False # The cluster can assign us work to do
 
           self.callbackUnitDone(self.unitID)
-          self.busy = False
+          self.dataAvailable = True
+          self.whenDataAvailable = self.system.now + op.latencyPipeline
+          self.system.schedule(self) 
+
 
       if self.busy:
+        # this means the unit is still processing the chunk in NBin, so we schedule it for next cycle
         self.system.schedule(self)
     # end of NBin_ready
 
