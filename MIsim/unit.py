@@ -8,11 +8,12 @@
 import numpy as np
 import math
 import options as op 
+import Queue as Q
 
 class Unit:
   """This is the class which represents a single processing pipeline"""
 
-  def __init__(self, system, verbose, clusterID, uid, NBin_nEntries, Ti, Tn, SB_size, callbackUnitDone):
+  def __init__(self, system, verbose, clusterID, uid, NBin_nEntries, Ti, Tn, SB_size, cbInputRead, cbDataAvailable):
     self.system = system
     self.clusterID = clusterID
     self.unitID = uid
@@ -21,7 +22,8 @@ class Unit:
     self.Ti = Ti
     self.Tn = Tn
     self.busy = False
-    self.callbackUnitDone = callbackUnitDone
+    self.cbInputRead = cbInputRead
+    self.cbDataAvailable = cbDataAvailable
 
     #instance variables 
     self.SB_ready = False
@@ -33,6 +35,8 @@ class Unit:
     self.SB_data = 0 # initializeUnit will assign this var properly according to the filters of the layer
     self.NBin_data = np.zeros((Ti, NBin_nEntries))
     self.NBin_ready = False
+
+    self.pipe = Q.queue()
 
     self.NBout = []
     self.dataAvailable = False
@@ -115,7 +119,7 @@ class Unit:
  
     if self.dataAvailable and self.whenDataAvailable <= self.system.now:
       # the cluster has to 
-      self.callbackUnitDataReady(self.unitID)
+      self.cbDataAvailable(self.unitID)
       
     if self.NBin_ready:
       self.busy = True
@@ -148,7 +152,7 @@ class Unit:
           self.NBin_ready = False # no data to process in the buffer
           self.busy = False # The cluster can assign us work to do
 
-          self.callbackUnitDone(self.unitID)
+          self.cbInputRead(self.unitID)
           self.dataAvailable = True
           self.whenDataAvailable = self.system.now + op.latencyPipeline
           self.system.schedule(self) 
