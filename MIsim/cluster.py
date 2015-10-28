@@ -10,10 +10,10 @@ import numpy as np
 import unit 
 
 class Cluster:
-  def __init__(self, system, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster, callbackClusterDone):
+  def __init__(self, system, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster, cbClusterDone):
     # cluster things 
     self.system = system
-    self.callbackClusterDone = callbackClusterDone
+    self.cbClusterDone = cbClusterDone
     self.VERBOSE = True
     self.clusterID = clusterID
     self.busy = False
@@ -33,7 +33,7 @@ class Cluster:
     self.filtersToUnits = {}
     self.unitToWindow = {}
     for i in range(nUnits):
-      self.units.append(unit.Unit(system, True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.callbackUnitDone))
+      self.units.append(unit.Unit(system, True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.cbInputRead, self.cbDataAvailable))
 
 ##################################################################################
 ###
@@ -106,17 +106,26 @@ class Cluster:
 
           # increase pointer indicating last processed element
           self.unitLastPosInWindow[cntUnit][1] += nElements
+
             
 ##################################################################################
 ###
 ##################################################################################
     
-  def callbackUnitDone(self, unitID):
+  def cbDataAvailable(self, unitID):
+    print "cbInputRead"
+ 
+            
+##################################################################################
+###
+##################################################################################
+    
+  def cbInputRead(self, unitID):
     #check if the unit has finished processing the window
     if self.units[unitID].windowPointer >= self.subWindowDataFlat[unitID].size:
       self.unitsProcWindow[self.windowID] -= 1
       if self.unitsProcWindow[self.windowID] == 0:
-        self.callbackClusterDone(self.clusterID, self.windowID)
+        self.cbClusterDone(self.clusterID, self.windowID)
     else:  
     # the unit did not finish the window so next cycle we will fill its NBin
     # if we wanted to allow processing more than one window in a cluster, this synch point should 

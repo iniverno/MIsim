@@ -29,14 +29,14 @@ class Unit:
     self.SB_ready = False
     self.SB_size = SB_size
     self.SB_available = SB_size
-    self.SB_nextFilterIdx = 0
+    self.SB_totalFilters = 0
     self.SB_filterIDtoEntry = {}
     self.SB_entryToFilterID = {}
     self.SB_data = 0 # initializeUnit will assign this var properly according to the filters of the layer
     self.NBin_data = np.zeros((Ti, NBin_nEntries))
     self.NBin_ready = False
 
-    self.pipe = Q.queue()
+    self.pipe = Q.Queue()
 
     self.NBout = []
     self.dataAvailable = False
@@ -74,12 +74,12 @@ class Unit:
       if self.VERBOSE:
         print "SB in unit %d (cluster %d) is now storing filter #%d"%(self.unitID, self.clusterID, e)
       # store the filter data at the proper position
-      self.SB_data[self.SB_nextFilterIdx] = filterData[i]
+      self.SB_data[self.SB_totalFilters] = filterData[i]
 
       #record the entry that the filter is stored in at SB  
-      self.SB_filterIDtoEntry[e] = self.SB_nextFilterIdx
-      self.SB_entryToFilterID[self.SB_nextFilterIdx] = e
-      self.SB_nextFilterIdx += 1
+      self.SB_filterIDtoEntry[e] = self.SB_totalFilters
+      self.SB_entryToFilterID[self.SB_totalFilters] = e
+      self.SB_totalFilters += 1
 
       # update the available space
       self.SB_available -= filterSize 
@@ -99,14 +99,14 @@ class Unit:
     self.NBin_data = inputData 
 
     # some initialization tasks to prepare the unit to process data
-    self.NBout_nEntries = int(math.ceil(self.SB_nextFilterIdx  / float(self.Tn)))
+    self.NBout_nEntries = int(math.ceil(self.SB_totalFilters  / float(self.Tn)))
     self.NBout_ptr = 0
     self.NBin_ptr = 0
 
     self.localWindowPointer = self.windowPointer
 
     self.filtersProcessed = 0
-    self.filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed) 
+    self.filtersToProcess = min(self.Tn, self.SB_totalFilters - self.filtersProcessed) 
 
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True
@@ -123,15 +123,29 @@ class Unit:
       
     if self.NBin_ready:
       self.busy = True
+      
+      # an array with the proper filter data is prepared 
+      # this arrays will be introduced in the pipeline queue
+      SB_head = np.zeros((self.Tn, self.Ti))
+      NB_head = np.zeros((self.Ti))
+
 
       print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
+
+      # the input data is read
+      NB_head = self.NBin_data[self.NBin_ptr * self.Ti : self.NBin_ptr * self.Ti + self.Ti]
 
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
 
         if self.VERBOSE and False:
           print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
-         
+                
+        SB_head[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
+        print np.sum(SB_head[f] * NB_head), " "
+        print "++++++++++++++++++++++++++++++++++++++++"
+
+
       # NBin_ptr is incremented
       if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
         self.NBin_ptr += 1
@@ -139,7 +153,7 @@ class Unit:
       else:
         self.NBin_ptr = 0
         self.filtersProcessed += self.filtersToProcess
-        self.filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed)
+        self.filtersToProcess = min(self.Tn, self.SB_totalFilters - self.filtersProcessed)
         self.localWindowPointer = self.windowPointer
 
         if self.NBout_ptr < self.NBout_nEntries - 1:
@@ -179,17 +193,17 @@ class Unit:
     NB_head = np.zeros((self.Ti))
 
     
-    NBout_nEntries = int(math.ceil(self.SB_nextFilterIdx  / float(self.Tn)))
+    NBout_nEntries = int(math.ceil(self.SB_totalFilters  / float(self.Tn)))
     self.filtersProcessed = 0
  
-    if self.VERBOSE: print "%d reuses of each input data (idx %d, SBdata %d, Tn %d) "%(NBout_nEntries, self.SB_nextFilterIdx, self.SB_data.size, self.Tn)
+    if self.VERBOSE: print "%d reuses of each input data (idx %d, SBdata %d, Tn %d) "%(NBout_nEntries, self.SB_totalFilters, self.SB_data.size, self.Tn)
 
     for t in range( NBout_nEntries):
       localWindowPointer = self.windowPointer
       for e in range(min(self.NBin_nEntries, self.NBin_data.size / self.Ti)):
         NB_head = self.NBin_data[e * self.Ti : e * self.Ti + self.Ti]
         # for each filter that fits
-        filtersToProcess = min(self.Tn, self.SB_nextFilterIdx - self.filtersProcessed)     
+        filtersToProcess = min(self.Tn, self.SB_totalFilters - self.filtersProcessed)     
         for f in range(filtersToProcess):
           filterNow = t * self.Tn + f
           SB_head[f] = self.SB_data[filterNow] [localWindowPointer : localWindowPointer + self.Ti]

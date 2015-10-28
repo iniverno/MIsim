@@ -96,8 +96,12 @@ class LayerDirector:
 ##################################################################################
 
   def computeConvolutionalLayer(self, data, filters, stride, padding, group):
-    weights = filters[0].data
-    biases  = filters[1].data
+    # TODO: when data come from modelzoo
+    #weights = filters[0].data
+    #biases  = filters[1].data
+    weights = filters
+
+
     N	  = weights.shape[0]
     i	  = weights.shape[1]
     Fx	  = weights.shape[2]
@@ -118,7 +122,7 @@ class LayerDirector:
     assert Fx==Fy, "Filter width (%d) is not equal to Filter height (%d)" %(Fx, Fy)
   
      # initialize the layer (filters are sent to SB in the units)
-    self.initializeLayer(filterWeights)
+    self.initializeLayer(weights)
  
     #### Main loop ###
     # Horizontal shifting for window generation  
@@ -139,7 +143,7 @@ class LayerDirector:
         while self.clustersProcWindow[windowID] > 0:
           self.cycle()
           
-          output[cntFilter, outPosY, outPosX] += biases[cntFilter]
+          #output[cntFilter, outPosY, outPosX] += biases[cntFilter]
         outPosY += 1
       outPosX += 1
   
