@@ -130,7 +130,8 @@ class Unit:
       NB_head = np.zeros((self.Ti))
 
 
-      print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
+      if self.VERBOSE: 
+        print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
       # the input data is read
       NB_head = self.NBin_data[self.NBin_ptr * self.Ti : self.NBin_ptr * self.Ti + self.Ti]
@@ -144,7 +145,7 @@ class Unit:
         SB_head[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
         print np.sum(SB_head[f] * NB_head), " "
         print "++++++++++++++++++++++++++++++++++++++++"
-
+      pipePacket = [self.system.now + op.latencyPipeline]
 
       # NBin_ptr is incremented
       if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
