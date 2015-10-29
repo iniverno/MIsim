@@ -123,7 +123,7 @@ class Unit:
       self.cbDataAvailable(self.unitID)
       
     if self.NBin_ready:
-       if self.VERBOSE: 
+      if self.VERBOSE: 
         print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
       self.busy = True
