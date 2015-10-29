@@ -123,6 +123,9 @@ class Unit:
       self.cbDataAvailable(self.unitID)
       
     if self.NBin_ready:
+       if self.VERBOSE: 
+        print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
+
       self.busy = True
       
       # an array with the proper filter data is prepared 
@@ -131,35 +134,27 @@ class Unit:
       NBin_toPipe = np.zeros((self.Ti))
       result = []
 
-      if self.VERBOSE: 
-        print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
-
-      # the input data is read
+     # the input data is read
       NBin_toPipe = self.NBin_data[self.NBin_ptr * self.Ti : self.NBin_ptr * self.Ti + self.Ti]
       
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
-
-        if self.VERBOSE and False:
-          print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
-                
         SB_toPipe[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
         # the pipeline is modelled as a dummy queue where the correct result is stored for latencyPipeline cycles  
         result.append(np.sum(SB_toPipe[f] * NBin_toPipe))
 
+        if self.VERBOSE and False:
+          print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
+ 
+      #if the number of filters processed this cycle is less than Tn, fill with zeroes
       for cntFill in range(self.Tn - self.filtersToProcess):
         result.append(0)
 
       # we read the partial results from NBout       
       result += self.NBout[self.NBout_ptr]
       self.NBout[self.NBout_ptr] = result
-
-      if self.VERBOSE:
-        print result
-
       # this is the packet for the pipeline
       pipePacket = [self.system.now + op.latencyPipeline, result]
-
 
       # NBin_ptr is incremented
       if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
