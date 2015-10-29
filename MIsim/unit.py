@@ -37,6 +37,7 @@ class Unit:
     self.NBin_ready = False
 
     self.pipe = Q.Queue()
+    self.headPipe = [] # aux var used to process the packet leaving the pipeline
 
     self.NBout = np.zeros((64, Tn))
     self.dataAvailable = False
@@ -118,9 +119,16 @@ class Unit:
 ##################################################################################
   def cycle(self):
  
-    if self.dataAvailable and self.whenDataAvailable <= self.system.now:
+    if self.headPipe == []:
+      if not self.pipe.empty(): 
+        self.headPipe = self.pipe.get()
+    
+    if self.headPipe != [] and self.headPipe[0] == self.system.now:
+      print self.system.now, " ", self.headPipe[1]
       # the cluster has to 
       self.cbDataAvailable(self.unitID)
+      del self.headPipe
+      self.headPipe = []
       
     if self.NBin_ready:
       if self.VERBOSE: 
@@ -155,6 +163,8 @@ class Unit:
       self.NBout[self.NBout_ptr] = result
       # this is the packet for the pipeline
       pipePacket = [self.system.now + op.latencyPipeline, result]
+      assert self.pipe.qsize() < op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
+      self.pipe.put(pipePacket)
 
       # NBin_ptr is incremented
       if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
