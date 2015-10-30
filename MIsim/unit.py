@@ -127,7 +127,9 @@ class Unit:
     if self.headPipe != [] and self.headPipe[0] == self.system.now:
       #print self.system.now, " ", self.clusterID, " ", self.headPipe[1]
       # the cluster has to 
-      self.cbDataAvailable(self.unitID, self.headPipe[1])
+      # last in window?
+      if self.headPipe[1]:
+        self.cbDataAvailable(self.unitID, self.headPipe[2])
       #self.stats.NBout_reads+=1
 
       self.headPipe = []

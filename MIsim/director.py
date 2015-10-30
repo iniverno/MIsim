@@ -28,7 +28,7 @@ class LayerDirector:
     self.nUnitsCluster = nTotalUnits / nClusters
     self.clustersProcWindow = {}
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20), self.callbackClusterDone))
+      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20), self.cbClusterDone))
 
 
   def schedule(self, entity, when = 1):
@@ -176,7 +176,11 @@ class LayerDirector:
 ###
 ##################################################################################
 
-  def callbackClusterDone(self, clusterID, windowID):
+  def cbClusterDone(self, clusterID, windowID):
     self.clustersProcWindow[windowID] -= 1 
+
+  def putData(self, windowID, data, filterIDs):
+    x, y = window2Dcoords(windowID)
+    output[filterIDs, y, x] = data 
 
 
