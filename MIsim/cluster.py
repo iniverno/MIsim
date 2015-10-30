@@ -112,9 +112,9 @@ class Cluster:
 ###
 ##################################################################################
     
-  def cbDataAvailable(self, unitID):
+  def cbDataAvailable(self, unitID, entry):
     #print "cbInputRead"
-    pass
+
             
 ##################################################################################
 ###

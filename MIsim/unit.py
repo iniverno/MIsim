@@ -9,6 +9,7 @@ import numpy as np
 import math
 import options as op 
 import Queue as Q
+import stats
 
 class Unit:
   """This is the class which represents a single processing pipeline"""
@@ -124,10 +125,11 @@ class Unit:
         self.headPipe = self.pipe.get()
     
     if self.headPipe != [] and self.headPipe[0] == self.system.now:
-      print self.system.now, " ", self.headPipe[1]
+      #print self.system.now, " ", self.clusterID, " ", self.headPipe[1]
       # the cluster has to 
-      self.cbDataAvailable(self.unitID)
-      del self.headPipe
+      self.cbDataAvailable(self.unitID, self.headPipe[1])
+      #self.stats.NBout_reads+=1
+
       self.headPipe = []
       
     if self.NBin_ready:
@@ -144,7 +146,7 @@ class Unit:
 
      # the input data is read
       NBin_toPipe = self.NBin_data[self.NBin_ptr * self.Ti : self.NBin_ptr * self.Ti + self.Ti]
-      
+ 
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
         SB_toPipe[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
@@ -161,6 +163,7 @@ class Unit:
       # we read the partial results from NBout       
       result += self.NBout[self.NBout_ptr]
       self.NBout[self.NBout_ptr] = result
+
       # this is the packet for the pipeline
       pipePacket = [self.system.now + op.latencyPipeline, result]
       assert self.pipe.qsize() < op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
@@ -187,9 +190,6 @@ class Unit:
           self.busy = False # The cluster can assign us work to do
 
           self.cbInputRead(self.unitID)
-          self.dataAvailable = True
-          self.whenDataAvailable = self.system.now + op.latencyPipeline
-          self.system.schedule(self) 
 
 
       if self.busy:
