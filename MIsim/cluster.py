@@ -30,7 +30,7 @@ class Cluster:
     self.NBin_nEntries = NBin_nEntries
     self.unitLastPosInWindow = np.zeros((nUnits, 2))  #it records the last position of the actual window that was sent to each unit (nWindow, pos)
     self.subWindowDataFlat = {}
-    self.unitsProcWindow = {}
+    self.unitsReadingWindow = {}
     self.filtersToUnits = {}
     self.unitToWindow = {}
     for i in range(nUnits):
@@ -71,8 +71,8 @@ class Cluster:
     featsUnit = windowData.shape[0] / self.nUnits 
 
     for cntUnit in range(self.nUnits): 
-      self.unitsProcWindow[self.windowID] = sets.Set()
-      self.unitsProcWindow[self.windowID].add(cntUnit)
+      self.unitsReadingWindow[self.windowID] = sets.Set()
+      self.unitsReadingWindow[self.windowID].add(cntUnit)
 
       # divide the windowData and flat it
       self.subWindowDataFlat[cntUnit] = np.array(windowData[cntUnit*featsUnit : (cntUnit+1) * featsUnit])
@@ -92,7 +92,7 @@ class Cluster:
     # each unit in the cluster has to process the subwindow
     # this processing can be synchronous or asynch
     # let's consider synch first
-    if len(self.unitsProcWindow[self.windowID]) > 0: 
+    if len(self.unitsReadingWindow[self.windowID]) > 0: 
       for cntUnit in range(self.nUnits):
         if not self.units[cntUnit].busy:
           #this cluster is busy because there is some unit working
@@ -116,21 +116,21 @@ class Cluster:
 ##################################################################################
     
   def cbDataAvailable(self, unitID, entry):
-    #print "cbInputRead"
-    #check if the unit has finished processing the [sub]window
-    if self.units[unitID].windowPointer >= self.subWindowDataFlat[unitID].size:
-     
-      # which are the filters corresponding to the data sent by the unit?
-      auxFilterIDs = self.filterIDs[self.unitFilterCnt[unitID]]
-      #TODO: here we should add the results of multiple subwindows if nUnits > 1
-      # processSubwindows()
-      # if all the units finished its part then ... todo
+    #this function is only called when the unit has processed the last entry corresponding 
+    #corresponding to each group of filters
+    #e.g., the NBout entry contains the final values for the corresponding filters
+ 
+    # which are the filters corresponding to the data sent by the unit?
+    auxFilterIDs = self.filterIDs[self.unitFilterCnt[unitID]]
+    #TODO: here we should add the results of multiple subwindows if nUnits > 1
+    # processSubwindows()
+    # if all the units finished its part then ... todo
       
-      self.system.putData(self.windowID, entry, auxFilterIDs)
+    self.system.putData(self.windowID, entry, auxFilterIDs)
    
-      self.unitsProcWindow[self.windowID] -= 1
-      if self.unitsProcWindow[self.windowID] == 0:
-        self.cbClusterDone(self.clusterID, self.windowID)
+    self.unitsProcWindow[self.windowID] -= 1
+    if self.unitsProcWindow[self.windowID] == 0:
+      self.cbClusterDone(self.clusterID, self.windowID)
  
             
 ##################################################################################
@@ -140,8 +140,8 @@ class Cluster:
   def cbInputRead(self, unitID):
     #check if the unit has finished processing the window
     if self.units[unitID].windowPointer >= self.subWindowDataFlat[unitID].size:
-      self.unitsProcWindow[self.windowID].remove(unitID)
-      if len(self.unitsProcWindow[self.windowID]) == 0:
+      self.unitsReadingWindow[self.windowID].remove(unitID)
+      if len(self.unitsReadingWindow[self.windowID]) == 0:
         self.cbClusterDone(self.clusterID, self.windowID)
     else:  
     # the unit did not finish the window so next cycle we will fill its NBin

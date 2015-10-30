@@ -95,7 +95,7 @@ class Unit:
 ###
 ##################################################################################
  
-  def fill_NBin(self, inputData, offsets = []):
+  def fill_NBin(self, inputData, final=False, offsets = []):
     #assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
     assert self.NBin_data.size >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
@@ -104,6 +104,7 @@ class Unit:
     self.NBin_data = inputData 
 
     self.localWindowPointer = self.windowPointer
+    self.finalFragmentOfWindow = final
 
     self.filtersProcessed = 0
     self.filtersToProcess = min(self.Tn, self.SB_totalFilters - self.filtersProcessed) 
@@ -167,7 +168,7 @@ class Unit:
       self.NBout[self.NBout_ptr] = result
 
       # this is the packet for the pipeline
-      pipePacket = [self.system.now + op.latencyPipeline, result]
+      pipePacket = [self.system.now + op.latencyPipeline, self.finalFragmentOfWindow, result]
       assert self.pipe.qsize() < op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
       self.pipe.put(pipePacket)
 
