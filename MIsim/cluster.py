@@ -77,8 +77,8 @@ class Cluster:
     self.windowID = windowID
     featsUnit = windowData.shape[0] / self.nUnits 
 
+    self.unitsReadingWindow[self.windowID] = sets.Set()
     for cntUnit in range(self.nUnits): 
-      self.unitsReadingWindow[self.windowID] = sets.Set()
       self.unitsReadingWindow[self.windowID].add(cntUnit)
       self.unitFilterCnt[cntUnit] = 0
 
