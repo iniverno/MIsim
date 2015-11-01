@@ -145,7 +145,7 @@ class Cluster:
     # if all the units finished its part then ... todo
      
     print "[",self.system.now, "] (cluster ", self.clusterID, ") copying the output for filters ",  auxFilterIDs
-    self.system.putData(self.windowID, entry, auxFilterIDs)
+    self.system.putData(self.windowID, entry[:len(auxFilterIDs)], auxFilterIDs)
    
     #self.unitsProcWindow[self.windowID] -= 1
     #if self.unitsProcWindow[self.windowID] == 0:

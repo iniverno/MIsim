@@ -35,7 +35,7 @@ class Unit:
     self.SB_entryToFilterID = {}
     self.SB_data = 0 # initializeUnit will assign this var properly according to the filters of the layer
     self.NBin_data = np.zeros((Ti, NBin_nEntries))
-    self.NBin_ready = False
+    self.NBin_ready = float("inf")
 
     self.pipe = Q.Queue()
     self.headPipe = [] # aux var used to process the packet leaving the pipeline
@@ -100,7 +100,7 @@ class Unit:
     assert self.NBin_data.size >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
     if self.VERBOSE:
-      print "fill_NBin in unit #%d (%d elements)"%(self.unitID, inputData.size)
+      print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, inputData.size)
     self.NBin_data = inputData 
 
     self.localWindowPointer = self.windowPointer
@@ -114,13 +114,13 @@ class Unit:
 
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True
-    self.NBin_ready = True 
+    self.NBin_ready = self.system.now + 1
 
 ##################################################################################
 ###
 ##################################################################################
   def cycle(self):
- 
+    #print "[%d] (cluster %d) unit %d"%(self.system.now, self.clusterID, self.unitID) 
     if self.headPipe == []:
       if not self.pipe.empty(): 
         self.headPipe = self.pipe.get()
@@ -134,7 +134,7 @@ class Unit:
       self.headPipe = []
 
  
-    if self.NBin_ready:
+    if self.NBin_ready <= self.system.now:
       if self.VERBOSE: 
         print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
@@ -191,7 +191,7 @@ class Unit:
           self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
           self.localWindowPointer = self.windowPointer
  
-          self.NBin_ready = False # no data to process in the buffer
+          self.NBin_ready = float("inf") # no data to process in the buffer
           self.busy = False # The cluster can assign us work to do
 
           self.cbInputRead(self.unitID)

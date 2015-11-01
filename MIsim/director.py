@@ -203,7 +203,6 @@ class LayerDirector:
     for f in filterIDs:
       self.filtersPending[windowID][f] = False
 
-    print "DATA WRITTEN"
     x, y = self.coordsWindow[windowID]
     self.output[filterIDs, x, y] = data  
 
