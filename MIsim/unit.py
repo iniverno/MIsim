@@ -63,8 +63,8 @@ class Unit:
   # filterIndexes: list containing filter indexes 
 ##################################################################################
   def fill_SB(self, filterData, filterIndexes):
-    filterIndexes = [filterIndexes]
-    filterData = [filterData]
+    #filterIndexes = [filterIndexes]
+    #filterData = [filterData]
 
     for i,e in enumerate(filterIndexes):
       filterSize = filterData[i].size
@@ -127,14 +127,13 @@ class Unit:
     
     if self.headPipe != [] and self.headPipe[0] == self.system.now:
       #print self.system.now, " ", self.clusterID, " ", self.headPipe[1]
-      # the cluster has to 
       # last in window?
       if self.headPipe[1]:
         self.cbDataAvailable(self.unitID, self.headPipe[2])
-      #self.stats.NBout_reads+=1
-
+       
       self.headPipe = []
-      
+
+ 
     if self.NBin_ready:
       if self.VERBOSE: 
         print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
@@ -167,20 +166,23 @@ class Unit:
       result += self.NBout[self.NBout_ptr]
       self.NBout[self.NBout_ptr] = result
 
-      # this is the packet for the pipeline
-      pipePacket = [self.system.now + op.latencyPipeline, self.finalFragmentOfWindow, result]
-      assert self.pipe.qsize() < op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
-      self.pipe.put(pipePacket)
+      #we insert the packet later when we now if this the final result for that NBout entry or not
+      # after the next block of instructions
+      useData = self.finalFragmentOfWindow
 
       # NBin_ptr is incremented
       if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
         self.NBin_ptr += 1
         self.localWindowPointer += self.Ti
+        useData = False
       else:
         self.NBin_ptr = 0
         self.filtersProcessed += self.filtersToProcess
         self.filtersToProcess = min(self.Tn, self.SB_totalFilters - self.filtersProcessed)
         self.localWindowPointer = self.windowPointer
+        #This is the last time accumulating results on this NBout entry, so if cluster said 
+        # it is the last fragment of the window --> data has to be used
+        #(no need to modify useData value)
 
         if self.NBout_ptr < self.NBout_nEntries - 1:
           self.NBout_ptr += 1
@@ -194,9 +196,13 @@ class Unit:
 
           self.cbInputRead(self.unitID)
 
+      # this is the packet for the pipeline
+      pipePacket = [self.system.now + op.latencyPipeline, useData, result]
+      assert self.pipe.qsize() < op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
+      self.pipe.put(pipePacket)
 
-      if self.busy:
+    if self.busy or self.headPipe != [] or not self.pipe.empty():
         # this means the unit is still processing the chunk in NBin, so we schedule it for next cycle
-        self.system.schedule(self)
+      self.system.schedule(self)
     # end of NBin_ready
 

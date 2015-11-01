@@ -26,9 +26,13 @@ class LayerDirector:
     self.nClusters = nClusters
     self.Tn = Tn  # it is used when assigning filters to clusters
     self.nUnitsCluster = nTotalUnits / nClusters
+    self.coordsWindow = {}
     self.clustersProcWindow = {}
+    self.filtersPending = {}
+    self.clustersReadingWindow = {}
+    self.output = []
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20), self.cbClusterDone))
+      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20), self.cbClusterDoneReading, self.cbClusterDone))
 
 
   def schedule(self, entity, when = 1):
@@ -41,10 +45,11 @@ class LayerDirector:
 
   def cycle(self):
     entities = [] 
-    self.now, entities = self.wakeQ.popitem(False)
+    aux, entities = self.wakeQ.popitem(False)
     print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
     for obj in entities:
       obj.cycle()
+    self.now += 1
 
 
 ##################################################################################
@@ -55,12 +60,12 @@ class LayerDirector:
 ###
 ##################################################################################
   def initializeLayer(self, weights):
-    nTotalFilters = weights.shape[0]
+    self.nTotalFilters = weights.shape[0]
     #how many filters have to go to each cluster
-    nFiltersPerCluster = nTotalFilters / self.nClusters
+    nFiltersPerCluster = self.nTotalFilters / self.nClusters
     print "%d filters per cluster" % (nFiltersPerCluster)
     # if the total number of filters is not a multiple of nClusters
-    nAdditionalFilters = nTotalFilters - (nFiltersPerCluster * self.nClusters)
+    nAdditionalFilters = self.nTotalFilters - (nFiltersPerCluster * self.nClusters)
     print "plus %d additional filters"%(nAdditionalFilters)
    
     # send the units the size of the filters so they can configure SB properly (simulation) 
@@ -76,10 +81,14 @@ class LayerDirector:
 
     while filtersAssignedSoFar < nFiltersPerCluster:
       cntFilterCluster = 0
+      listFilterData = []
+      listFilterIdxs = []
       while cntFilterCluster < min(self.Tn, nFiltersPerCluster-filtersAssignedSoFar ): 
-        self.clusters[cntCluster].fill_SB(weights[idxFilter], idxFilter)
+        listFilterData.append(weights[idxFilter])
+        listFilterIdxs.append(idxFilter)
         cntFilterCluster += 1
         idxFilter += 1
+      self.clusters[cntCluster].fill_SB(listFilterData, listFilterIdxs)
       cntCluster += 1
       if cntCluster == self.nClusters:
         filtersAssignedSoFar += cntFilterCluster
@@ -126,7 +135,7 @@ class LayerDirector:
  
     #### Main loop ###
     # Horizontal shifting for window generation  
-    output = np.zeros((N, (Ix-Fx)/stride+1, (Iy-Fy)/stride+1))
+    self.output = np.zeros((N, (Ix-Fx)/stride+1, (Iy-Fy)/stride+1))
     windowID = 0
     outPosX = 0
     for posInputX in range(0, Ix-Fx+1, stride):
@@ -136,19 +145,26 @@ class LayerDirector:
 
       # process each window
         auxWindow  = data[:, posInputY:posInputY+Fy, posInputX:posInputX+Fx]
+        self.filtersPending[windowID] = [True] * self.nTotalFilters
  
         self.initializeWindow(auxWindow, windowID)
         self.startWindowProcessing(auxWindow, windowID)
-    
-        while self.clustersProcWindow[windowID] > 0:
+        self.coordsWindow[windowID] = [outPosX, outPosY]
+ 
+        while not self.isFinished(windowID):
           self.cycle()
           
           #output[cntFilter, outPosY, outPosX] += biases[cntFilter]
         outPosY += 1
       outPosX += 1
   
-    return output
 
+  def isFinished(self, windowID):
+    for i,e in enumerate(self.filtersPending[windowID]):
+      if e:
+        return False
+    return True
+    
 
 ##################################################################################
 ###
@@ -158,6 +174,7 @@ class LayerDirector:
 
     #self.windowsDataFlat[windowID] = np.swapaxes(windowData, 0, 2).flatten()
     self.clustersProcWindow[windowID] = self.nClusters
+    self.clustersReadingWindow[windowID] = self.nClusters 
     for cntCluster in range(self.nClusters):
       self.clusters[cntCluster].initializeWindow(windowData, windowID)
 
@@ -175,12 +192,18 @@ class LayerDirector:
 ##################################################################################
 ###
 ##################################################################################
+  def cbClusterDoneReading(self, clusterID, windowID):
+    self.clustersReadingWindow[windowID] -= 1 
 
   def cbClusterDone(self, clusterID, windowID):
     self.clustersProcWindow[windowID] -= 1 
 
-  def putData(self, windowID, data, filterIDs):
-    x, y = window2Dcoords(windowID)
-    output[filterIDs, y, x] = data 
 
+  def putData(self, windowID, data, filterIDs):
+    for f in filterIDs:
+      self.filtersPending[windowID][f] = False
+
+    print "DATA WRITTEN"
+    x, y = self.coordsWindow[windowID]
+    self.output[filterIDs, x, y] = data  
 
