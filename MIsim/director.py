@@ -14,13 +14,14 @@ class LayerDirector:
 
   verboseUnits = True
 
-  def __init__(self, nClusters, nTotalUnits, Ti, Tn, NBin_nEntries):
+  def __init__(self, nClusters, nTotalUnits, Ti, Tn, NBin_nEntries, ZF):
 
     #schedule
     self.wakeQ = SortedDict()
     self.now = 0
 
     #components
+    self.ZF = ZF
     self.VERBOSE = True
     self.clusters = []
     self.nClusters = nClusters

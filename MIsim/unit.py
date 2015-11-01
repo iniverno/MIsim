@@ -36,6 +36,7 @@ class Unit:
     self.SB_data = 0 # initializeUnit will assign this var properly according to the filters of the layer
     self.NBin_data = np.zeros((Ti, NBin_nEntries))
     self.NBin_ready = float("inf")
+    self.offsets = []
 
     self.pipe = Q.Queue()
     self.headPipe = [] # aux var used to process the packet leaving the pipeline
@@ -102,7 +103,7 @@ class Unit:
     if self.VERBOSE:
       print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, inputData.size)
     self.NBin_data = inputData 
-
+    self.offsets = offsets
     self.localWindowPointer = self.windowPointer
     self.finalFragmentOfWindow = final
 

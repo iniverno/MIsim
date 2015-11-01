@@ -116,7 +116,12 @@ class Cluster:
             print "[",self.system.now, "] LastFragment of window being copied in (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
             final = True
 
-          self.units[cntUnit].fill_NBin(self.subWindowDataFlat[cntUnit][rangeToProcess], final)
+          if self.system.ZF:
+            data, offsets = self.compress(self.subWindowDataFlat[cntUnit][rangeToProcess])
+          else:
+            data = self.subWindowDataFlat[cntUnit][rangeToProcess]
+
+          self.units[cntUnit].fill_NBin(data, final)
           self.system.schedule(self.units[cntUnit])
 
           #functional
