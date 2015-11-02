@@ -92,7 +92,18 @@ class Unit:
     # some initialization tasks to prepare the unit to process data
     self.NBout_nEntries = int(math.ceil(self.SB_totalFilters  / float(self.Tn)))
 
-
+##################################################################################
+###
+##################################################################################
+  def compress(self, data):
+    resData = []
+    resOffsets = []
+    for i,e in enumerate(data):
+      if e:
+        resData.append(e)
+        resOffsets.append(i)
+    return [np.asarray(resData), np.asarray(resOffsets)]
+ 
 ##################################################################################
 ###
 ##################################################################################
@@ -106,7 +117,7 @@ class Unit:
 ###
 ##################################################################################
  
-  def fill_NBin(self, inputData, origSize):
+  def fill_NBin(self, address, data):
     #assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
     assert self.Ti*self.NBin_nEntries >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
@@ -122,11 +133,14 @@ class Unit:
     self.NBout_ptr = 0
     self.NBin_ptr = 0
 
-    self.NBin_dataOriginalSize = origSize
+    self.NBin_dataOriginalSize = data.size
 
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True
     self.NBin_ready = self.system.now + 1
+    
+    if self.system.ZF:
+      self.NBin_data, self.offsets = self.compress(data)
 
 ##################################################################################
 ###

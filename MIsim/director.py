@@ -9,6 +9,7 @@ from sortedcontainers import SortedDict
 import numpy as np
 import unit
 import cluster
+import simpleMemory 
 
 class LayerDirector:
 
@@ -20,13 +21,15 @@ class LayerDirector:
     self.wakeQ = SortedDict()
     self.now = 0
 
-    #components
     self.ZF = ZF
     self.VERBOSE = True
-    self.clusters = []
     self.nClusters = nClusters
     self.Tn = Tn  # it is used when assigning filters to clusters
     self.nUnitsCluster = nTotalUnits / nClusters
+ 
+    #components
+    self.centralMem = simpleMemory.SimpleMemory(self, 100000, 10, 2, 2)
+    self.clusters = []
     self.coordsWindow = {}
     self.clustersProcWindow = {}
     self.filtersPending = {}
