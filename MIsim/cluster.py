@@ -130,6 +130,19 @@ class Cluster:
           # increase pointer indicating last processed element
           self.unitLastPosInWindow[cntUnit][1] += nElements
 
+##################################################################################
+###
+##################################################################################
+  def compress(self, data):
+    resData = []
+    resOffsets = []
+    for i,e in enumerate(data):
+      if e:
+        resData.append(e)
+        resOffsets.append(i)
+    return [resData, resOffsets]
+    
+
             
 ##################################################################################
 ###
