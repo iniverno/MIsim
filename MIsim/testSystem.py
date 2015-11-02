@@ -11,12 +11,12 @@ import director
 import numpy as np
 import random 
 
-d = director.LayerDirector(16, 256, 1, 16, 16, True)
-auxData = np.zeros((192,3,3))
+d = director.LayerDirector(4, 64, 1, 16, 16, True)
+auxData = np.zeros((48,3,3))
 for i,e in enumerate(auxData.flat):
   auxData.flat[i] = random.randrange(2)
-auxData [191, 2, 2] = 17
+#auxData [191, 2, 2] = 17
 print auxData
-auxFilters = np.zeros((384, 192, 3, 3))
-auxFilters [: , 191, 2, 2] = 2
+auxFilters = np.zeros((384, 48, 3, 3))
+auxFilters [: , 47, 2, 2] = 2
 d.computeConvolutionalLayer(auxData, auxFilters, 1, 0, 1)

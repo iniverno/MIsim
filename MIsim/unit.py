@@ -154,7 +154,8 @@ class Unit:
  
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
-        # select the proper filter weights
+        # select the proper filter weights:
+        #if Zero-Free: offsets must be used
         if self.system.ZF:
           SB_toPipe[f] = self.SB_data[filterNow] [self.windowPointer + self.offsets[self.NBin_ptr] : self.windowPointer + self.offsets[self.NBin_ptr] + self.Ti]
         else:
