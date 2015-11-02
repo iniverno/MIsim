@@ -92,20 +92,29 @@ class Unit:
     # some initialization tasks to prepare the unit to process data
     self.NBout_nEntries = int(math.ceil(self.SB_totalFilters  / float(self.Tn)))
 
+
 ##################################################################################
 ###
 ##################################################################################
  
-  def fill_NBin(self, inputData, origSize, final=False, offsets = []):
+  def fill_offsets(self, inputData, offsetData):
+    if self.VERBOSE:
+      print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, offsetData.size)
+    self.offsets = offsetData
+
+##################################################################################
+###
+##################################################################################
+ 
+  def fill_NBin(self, inputData, origSize):
     #assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
     assert self.Ti*self.NBin_nEntries >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
     if self.VERBOSE:
       print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, inputData.size)
     self.NBin_data = inputData 
-    self.offsets = offsets
     self.localWindowPointer = self.windowPointer
-    self.finalFragmentOfWindow = final
+#    self.finalFragmentOfWindow = final
 
     self.filtersProcessed = 0
     self.filtersToProcess = min(self.Tn, self.SB_totalFilters - self.filtersProcessed) 

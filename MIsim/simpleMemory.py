@@ -65,3 +65,7 @@ class SimpleMemory:
       auxReq = self.Request(address, 0, size, requestor = requestor) 
       self.reqsQ.append(auxReq)
       self.system.schedule(self)
+
+
+
+
