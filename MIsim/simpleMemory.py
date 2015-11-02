@@ -1,4 +1,11 @@
-from collections import deque
+f##################################################################################3
+#
+#      Jorge Albericio, 2015
+#      jorge@ece.utoronto.ca
+#
+##################################################################################
+
+irom collections import deque
 from sets import Set
 import numpy as np
 
@@ -66,6 +73,8 @@ class SimpleMemory:
       self.reqsQ.append(auxReq)
       self.system.schedule(self)
 
-
+  def magicWrite(self, address, data):
+    for i,e in enumerate(data):
+      self.data[address + i] = e
 
 

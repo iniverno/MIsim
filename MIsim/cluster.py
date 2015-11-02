@@ -122,10 +122,21 @@ class Cluster:
           else:
             data = self.subWindowDataFlat[cntUnit][rangeToProcess]
 
-          if data.size > 0:
-            origDataSize = self.subWindowDataFlat[cntUnit][rangeToProcess].size
-            self.units[cntUnit].fill_NBin(data, origDataSize, final, offsets)
-            self.system.schedule(self.units[cntUnit])
+          #TODO: first approach, change!
+          addressData = 10000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
+          self.system.centralMem.magicWrite(addressData, data)
+          if self.system.ZF:
+            self.system.centralMem.magicWrite(addressOffset, offsets)
+            addressOffset = 20000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
+ 
+          if len(rangeToProcess) > 0:
+            self.units[cntUnit].finalFragmentOfWindow = final
+            if self.system.ZF:
+              self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
+            self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin)
+
+            #self.units[cntUnit].fill_NBin(data, origDataSize, final, offsets)
+            #self.system.schedule(self.units[cntUnit])
           else:
             print "SKIP ", cntUnit, " ", self.clusterID, " ", nElements, " ", final
             self.units[cntUnit].skipElements(nElements, final)
