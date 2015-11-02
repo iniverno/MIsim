@@ -119,11 +119,11 @@ class Unit:
  
   def fill_NBin(self, address, data):
     #assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
-    assert self.Ti*self.NBin_nEntries >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
+    assert self.Ti*self.NBin_nEntries >= data.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.Ti*self.NBin_nEntries,  data.size)
 
     if self.VERBOSE:
-      print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, inputData.size)
-    self.NBin_data = inputData 
+      print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, data.size)
+    self.NBin_data = data 
     self.localWindowPointer = self.windowPointer
 #    self.finalFragmentOfWindow = final
 
@@ -141,6 +141,8 @@ class Unit:
     
     if self.system.ZF:
       self.NBin_data, self.offsets = self.compress(data)
+
+    self.system.schedule(self)
 
 ##################################################################################
 ###

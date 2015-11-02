@@ -1,11 +1,11 @@
-f##################################################################################3
+##################################################################################3
 #
 #      Jorge Albericio, 2015
 #      jorge@ece.utoronto.ca
 #
 ##################################################################################
 
-irom collections import deque
+from collections import deque
 from sets import Set
 import numpy as np
 
@@ -20,39 +20,44 @@ class SimpleMemory:
       self.addr = addr
       self.typeReq = typeReq # 0: read, 1: write
       self.size = size
+      self.left = size
       self.data = data
-      self.requestors = Set(requestor)
+      self.requestors = Set([requestor])
     
   def __init__(self, system, size, latency, nPorts, bytesCyclePort):
+    self.VERBOSE = True
     self.system = system
     self.latency = latency
     self.nPorts = nPorts
     self.beingServed = []*nPorts
     self.reqsQ = deque()
     self.data = np.zeros((size))
+    self.bytesCyclePort = bytesCyclePort
 
   def cycle(self):
     #if there is ports available and requests waiting
     if len(self.beingServed) < self.nPorts:
-      for i in range(self.nPorts - self.beingServed):
-        if not self.reqsQ.empty():
-          self.beingServed.append(self.reqsQ.get())
+      for i in range(self.nPorts - len(self.beingServed)):
+        if len(self.reqsQ) > 0:
+          self.beingServed.append(self.reqsQ.popleft())
 
     if len(self.beingServed) > 0:
       auxBeingServed = []
       for req in self.beingServed:
-        req.size -= self.bytesCyclePort
-        if req.size <= 0:
+        req.left -= self.bytesCyclePort
+        if req.left <= 0:
           #read
           if req.typeReq==0:
+            if self.VERBOSE: print "simpleMemory serving read to ", len(req.requestors), " requestors"
             for requestor in req.requestors:
-              requestor(req.address, self.data[address : address + req.size])
+           
+              requestor(req.addr, self.data[req.addr : req.addr + req.size])
           #write
           else:
             self.data[req.address : req.address + req.size] = req.data
         else:
           auxBeingServed.append(req)
-      req.beingServed = auxBeingServe
+      req.beingServed = auxBeingServed
  
       if len(self.beingServed) > 0 or len(self.reqsQ) > 0:
         self.system.schedule(self)
@@ -63,10 +68,12 @@ class SimpleMemory:
     self.system.schedule(self)
 
   def read(self, address, size, requestor):
+    if self.VERBOSE: 
+      print "SimpleMemory.read address:", address, " size:", size 
     present = False
     for r in self.reqsQ:
-      if r.address == address and r.typeReq == 0:
-        self.requestors.add(requestor)
+      if r.addr == address and r.typeReq == 0:
+        r.requestors.add(requestor)
         present = True
     if not present:
       auxReq = self.Request(address, 0, size, requestor = requestor) 

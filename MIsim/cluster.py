@@ -126,13 +126,13 @@ class Cluster:
           addressData = 10000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
           self.system.centralMem.magicWrite(addressData, data)
           if self.system.ZF:
-            self.system.centralMem.magicWrite(addressOffset, offsets)
             addressOffset = 20000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
+            self.system.centralMem.magicWrite(addressOffset, offsets)
  
           if len(rangeToProcess) > 0:
             self.units[cntUnit].finalFragmentOfWindow = final
-            if self.system.ZF:
-              self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
+            #if self.system.ZF:
+              #self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
             self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin)
 
             #self.units[cntUnit].fill_NBin(data, origDataSize, final, offsets)
