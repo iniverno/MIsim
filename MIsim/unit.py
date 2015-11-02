@@ -96,9 +96,9 @@ class Unit:
 ###
 ##################################################################################
  
-  def fill_NBin(self, inputData, final=False, offsets = []):
+  def fill_NBin(self, inputData, origSize, final=False, offsets = []):
     #assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
-    assert self.NBin_data.size >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
+    assert self.Ti*self.NBin_nEntries >= inputData.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.NBin_data.size,  inputData.size)
 
     if self.VERBOSE:
       print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, inputData.size)
@@ -112,6 +112,8 @@ class Unit:
 
     self.NBout_ptr = 0
     self.NBin_ptr = 0
+
+    self.NBin_dataOriginalSize = origSize
 
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True
@@ -189,7 +191,7 @@ class Unit:
           self.NBout_ptr += 1
         else:
         #the unit is done with this chunk
-          self.windowPointer += self.NBin_data.size #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
+          self.windowPointer += self.NBin_dataOriginalSize #min(self.NBin_nEntries, self.NBin_data.size / self.Ti) * self.Ti 
           self.localWindowPointer = self.windowPointer
  
           self.NBin_ready = float("inf") # no data to process in the buffer
@@ -206,4 +208,15 @@ class Unit:
         # this means the unit is still processing the chunk in NBin, so we schedule it for next cycle
       self.system.schedule(self)
     # end of NBin_ready
+
+##################################################################################
+###
+##################################################################################
+ 
+  def skipElements(self, final, nElements):
+    self.windowPointer += nElements
+    if final:
+      pipePacket = [self.system.now + op.latencyPipeline, True, np.zeros((self.Tn))]
+      assert self.pipe.qsize() < op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
+      self.pipe.put(pipePacket)
 

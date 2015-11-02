@@ -46,10 +46,11 @@ class LayerDirector:
 
   def cycle(self):
     entities = [] 
-    aux, entities = self.wakeQ.popitem(False)
-    print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
-    for obj in entities:
-      obj.cycle()
+    if len(self.wakeQ) !=0:
+      aux, entities = self.wakeQ.popitem(False)
+      print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
+      for obj in entities:
+        obj.cycle()
     self.now += 1
 
 

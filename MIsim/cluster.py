@@ -91,7 +91,7 @@ class Cluster:
 ###
 ##################################################################################
   def cycle(self):
-    if 0 and self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.now, windowID, self.clusterID) 
+    if self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.now, self.windowID, self.clusterID) 
 
     # this will probably change when units are asynch
     nElements = self.Ti * self.NBin_nEntries
@@ -102,7 +102,7 @@ class Cluster:
     # let's consider synch first
     if len(self.unitsReadingWindow[self.windowID]) > 0: 
       for cntUnit in range(self.nUnits):
-        if not self.units[cntUnit].busy:
+        if not self.units[cntUnit].busy and (cntUnit in self.unitsReadingWindow[self.windowID]):
           #this cluster is busy because there is some unit working
           self.busy = True
 
@@ -110,10 +110,11 @@ class Cluster:
           auxPos = self.unitLastPosInWindow[cntUnit][1]
           rangeToProcess = range(int(auxPos), int(min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)))
 
+          print cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
           # is the last fragment of the window for that unit?
           final = False
           if rangeToProcess[-1] >= self.subWindowDataFlat[cntUnit].size-1:
-            print "[",self.system.now, "] LastFragment of window being copied in (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
+            print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
             final = True
 
           if self.system.ZF:
@@ -121,8 +122,13 @@ class Cluster:
           else:
             data = self.subWindowDataFlat[cntUnit][rangeToProcess]
 
-          self.units[cntUnit].fill_NBin(data, final)
-          self.system.schedule(self.units[cntUnit])
+          if data.size > 0:
+            origDataSize = self.subWindowDataFlat[cntUnit][rangeToProcess].size
+            self.units[cntUnit].fill_NBin(data, origDataSize, final, offsets)
+            self.system.schedule(self.units[cntUnit])
+          else:
+            print "SKIP ", cntUnit, " ", self.clusterID, " ", nElements, " ", final
+            self.units[cntUnit].skipElements(nElements, final)
 
           #functional
           #self.units[cntUnit].compute()
@@ -140,7 +146,7 @@ class Cluster:
       if e:
         resData.append(e)
         resOffsets.append(i)
-    return [resData, resOffsets]
+    return [np.asarray(resData), np.asarray(resOffsets)]
     
 
             
