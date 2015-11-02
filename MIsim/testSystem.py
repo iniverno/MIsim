@@ -10,8 +10,9 @@
 import director
 import numpy as np
 import random 
+import options as op
 
-d = director.LayerDirector(4, 64, 1, 16, 16, True)
+d = director.LayerDirector(op.nClusters, op.nClusters * op.nUnitsCluster, op.Ti, op.Tn, op.nEntries, op.ZF)
 auxData = np.zeros((48,3,3))
 for i,e in enumerate(auxData.flat):
   auxData.flat[i] = random.randrange(2)

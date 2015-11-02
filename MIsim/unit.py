@@ -122,7 +122,7 @@ class Unit:
     assert self.Ti*self.NBin_nEntries >= data.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.Ti*self.NBin_nEntries,  data.size)
 
     if self.VERBOSE:
-      print "fill_NBin in (cluster %d) unit #%d (%d elements)"%(self.clusterID, self.unitID, data.size)
+      print "fill_NBin @%d in (cluster %d) unit #%d (%d elements)"%(address, self.clusterID, self.unitID, data.size)
     self.NBin_data = data 
     self.localWindowPointer = self.windowPointer
 #    self.finalFragmentOfWindow = final
@@ -133,7 +133,7 @@ class Unit:
     self.NBout_ptr = 0
     self.NBin_ptr = 0
 
-    self.NBin_dataOriginalSize = data.size
+    #self.NBin_dataOriginalSize = data.size
 
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True

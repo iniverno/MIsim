@@ -24,18 +24,22 @@ class SimpleMemory:
       self.data = data
       self.requestors = Set([requestor])
     
-  def __init__(self, system, size, latency, nPorts, bytesCyclePort):
+  def __init__(self, system, size, nPorts, bytesCyclePort):
     self.VERBOSE = True
     self.system = system
-    self.latency = latency
     self.nPorts = nPorts
     self.beingServed = []*nPorts
     self.reqsQ = deque()
     self.data = np.zeros((size))
     self.bytesCyclePort = bytesCyclePort
 
+##################################################################################
+###
+##################################################################################
+ 
   def cycle(self):
     #if there is ports available and requests waiting
+    print "len beingServed:%d, nports: %d"%(len(self.beingServed), self.nPorts)
     if len(self.beingServed) < self.nPorts:
       for i in range(self.nPorts - len(self.beingServed)):
         if len(self.reqsQ) > 0:
@@ -48,7 +52,7 @@ class SimpleMemory:
         if req.left <= 0:
           #read
           if req.typeReq==0:
-            if self.VERBOSE: print "simpleMemory serving read to ", len(req.requestors), " requestors"
+            if self.VERBOSE: print "simpleMemory serving read to ", req.addr, ", ", len(req.requestors), " requestors queue:", len(self.reqsQ)
             for requestor in req.requestors:
            
               requestor(req.addr, self.data[req.addr : req.addr + req.size])
@@ -56,17 +60,27 @@ class SimpleMemory:
           else:
             self.data[req.address : req.address + req.size] = req.data
         else:
+          print "reintroduced ", req.addr, " ", req.left, " ", len(self.reqsQ) 
           auxBeingServed.append(req)
-      req.beingServed = auxBeingServed
+      self.beingServed = auxBeingServed
+      print "SimpleMemory beingServed: ", len(self.beingServed )
  
       if len(self.beingServed) > 0 or len(self.reqsQ) > 0:
         self.system.schedule(self)
+
+##################################################################################
+###
+##################################################################################
   
   def write(self, address, data):
     auxReq = self.Request(address, 1, data.size, data = data)
     self.reqsQ.append(auxReq)
     self.system.schedule(self)
 
+##################################################################################
+###
+##################################################################################
+ 
   def read(self, address, size, requestor):
     if self.VERBOSE: 
       print "SimpleMemory.read address:", address, " size:", size 
@@ -78,8 +92,13 @@ class SimpleMemory:
     if not present:
       auxReq = self.Request(address, 0, size, requestor = requestor) 
       self.reqsQ.append(auxReq)
-      self.system.schedule(self)
+    self.system.schedule(self)
+    print "queue: ",len(self.reqsQ) 
 
+##################################################################################
+###
+##################################################################################
+ 
   def magicWrite(self, address, data):
     for i,e in enumerate(data):
       self.data[address + i] = e

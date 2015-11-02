@@ -10,6 +10,7 @@ import numpy as np
 import unit
 import cluster
 import simpleMemory 
+import options as op
 
 class LayerDirector:
 
@@ -28,7 +29,7 @@ class LayerDirector:
     self.nUnitsCluster = nTotalUnits / nClusters
  
     #components
-    self.centralMem = simpleMemory.SimpleMemory(self, 100000, 10, 2, 2)
+    self.centralMem = simpleMemory.SimpleMemory(self, op.CM_size, op.CM_nPorts, op.CM_bytesCyclePort)
     self.clusters = []
     self.coordsWindow = {}
     self.clustersProcWindow = {}

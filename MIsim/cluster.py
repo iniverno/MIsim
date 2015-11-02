@@ -75,6 +75,9 @@ class Cluster:
  
   def initializeWindow(self, windowData, windowID):
     self.windowID = windowID
+    self.windowSize = windowData.size
+    self.subWindowSize = self.windowSize / self.nUnits 
+
     featsUnit = windowData.shape[0] / self.nUnits 
 
     self.unitsReadingWindow[self.windowID] = sets.Set()
@@ -110,12 +113,14 @@ class Cluster:
           auxPos = self.unitLastPosInWindow[cntUnit][1]
           rangeToProcess = range(int(auxPos), int(min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)))
 
-          print cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
           # is the last fragment of the window for that unit?
           final = False
+          
+          print "rangeToProcess:", cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
           if rangeToProcess[-1] >= self.subWindowDataFlat[cntUnit].size-1:
-            print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
             final = True
+
+            print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
 
           if self.system.ZF:
             data, offsets = self.compress(self.subWindowDataFlat[cntUnit][rangeToProcess])
@@ -123,7 +128,7 @@ class Cluster:
             data = self.subWindowDataFlat[cntUnit][rangeToProcess]
 
           #TODO: first approach, change!
-          addressData = 10000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
+          addressData = self.windowSize * self.windowID + self.subWindowSize * cntUnit + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
           self.system.centralMem.magicWrite(addressData, data)
           if self.system.ZF:
             addressOffset = 20000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
@@ -133,7 +138,10 @@ class Cluster:
             self.units[cntUnit].finalFragmentOfWindow = final
             #if self.system.ZF:
               #self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
+            
+            self.units[cntUnit].NBin_dataOriginalSize = len(rangeToProcess)
             self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin)
+            self.units[cntUnit].busy = True
 
             #self.units[cntUnit].fill_NBin(data, origDataSize, final, offsets)
             #self.system.schedule(self.units[cntUnit])
