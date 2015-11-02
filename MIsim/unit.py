@@ -154,7 +154,11 @@ class Unit:
  
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
-        SB_toPipe[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
+        # select the proper filter weights
+        if self.system.ZF:
+          SB_toPipe[f] = self.SB_data[filterNow] [self.windowPointer + self.offsets[self.NBin_ptr] : self.windowPointer + self.offsets[self.NBin_ptr] + self.Ti]
+        else:
+          SB_toPipe[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
         # the pipeline is modelled as a dummy queue where the correct result is stored for latencyPipeline cycles  
         result.append(np.sum(SB_toPipe[f] * NBin_toPipe))
 
