@@ -6,6 +6,7 @@
 ##################################################################################
 
 
+import options as op 
 import numpy as np
 import unit 
 import sets
@@ -15,7 +16,7 @@ class Cluster:
     # cluster things 
     self.system = system
     self.cbClusterDoneReading = cbClusterDoneReading
-    self.VERBOSE = True
+    self.VERBOSE = op.clusterVerbose
     self.clusterID = clusterID
     self.busy = False
 
@@ -36,7 +37,7 @@ class Cluster:
     self.filterIDs = []
     self.unitFilterCnt = [0]*nUnits
     for i in range(nUnits):
-      self.units.append(unit.Unit(system, True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.cbInputRead, self.cbDataAvailable))
+      self.units.append(unit.Unit(system, self.VERBOSE, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.cbInputRead, self.cbDataAvailable))
 
 ##################################################################################
 ###
@@ -116,7 +117,7 @@ class Cluster:
           # is the last fragment of the window for that unit?
           final = False
           
-          print "rangeToProcess:", cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
+          #print "rangeToProcess:", cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
           if rangeToProcess[-1] >= self.subWindowDataFlat[cntUnit].size-1:
             final = True
 
@@ -187,7 +188,7 @@ class Cluster:
     # processSubwindows()
     # if all the units finished its part then ... todo
      
-    print "[",self.system.now, "] (cluster ", self.clusterID, ") copying the output for filters ",  auxFilterIDs
+    print "[%d]"%self.system.now,"(cluster %2d)"%self.clusterID, "copying the output for filters ",  auxFilterIDs
     self.system.putData(self.windowID, entry[:len(auxFilterIDs)], auxFilterIDs)
    
     #self.unitsProcWindow[self.windowID] -= 1

@@ -18,7 +18,7 @@ class Unit:
     self.system = system
     self.clusterID = clusterID
     self.unitID = uid
-    self.VERBOSE = verbose
+    self.VERBOSE = op.unitVerbose
     self.NBin_nEntries = NBin_nEntries
     self.Ti = Ti
     self.Tn = Tn
@@ -72,10 +72,10 @@ class Unit:
       nFilters = len(filterIndexes)
 
       # Check if there is enough space
-      assert filterSize  <= self.SB_available, "The filters being loaded in SB of unit %d are too big (%d vs. %d available)"%(self.unitID, filterSize, self.SB_size)
+      assert filterSize  <= self.SB_available, "The filters being loaded in SB of unit %d are too big (%d vs. %d/%d available)"%(self.unitID, filterSize, self.SB_available, self.SB_size)
 
       if self.VERBOSE:
-        print "SB in unit %d (cluster %d) is now storing filter #%d"%(self.unitID, self.clusterID, e)
+        print "SB in unit %d (cluster %d) is now storing filter #%d (%d)"%(self.unitID, self.clusterID, e, filterSize)
       # store the filter data at the proper position
       self.SB_data[self.SB_totalFilters] = filterData[i]
 
@@ -148,7 +148,7 @@ class Unit:
 ###
 ##################################################################################
   def cycle(self):
-    #print "[%d] (cluster %d) unit %d"%(self.system.now, self.clusterID, self.unitID) 
+    if self.VERBOSE: print "[%d] (cluster %d) unit %d"%(self.system.now, self.clusterID, self.unitID) 
     if self.headPipe == []:
       if not self.pipe.empty(): 
         self.headPipe = self.pipe.get()

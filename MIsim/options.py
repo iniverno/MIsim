@@ -5,14 +5,22 @@
 #
 ##################################################################################
 
+# verbose message settings
+memVerbose      = 1
+clusterVerbose  = 1
+unitVerbose     = 1
+directorVerbose = 1
 
-ZF = True
+ZF = 0
 latencyPipeline = 8
 
 # Central Memory
 CM_nPorts = 2
 CM_bytesCyclePort = 2
 CM_size = 100000
+
+# SB
+SB_size_per_cluster = 1<<22 # 2^22 = 4MB
 
 if ZF:
   nClusters = 16
@@ -23,8 +31,8 @@ if ZF:
   ZF = True
 
 else:
-  nClusters = 4
-  nUnitsCluster = 1
+  nClusters = 16
+  nUnitsCluster = 16
   Ti = 16
   Tn = 16
   nEntries = 16

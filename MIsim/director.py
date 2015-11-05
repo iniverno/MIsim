@@ -23,7 +23,7 @@ class LayerDirector:
     self.now = 0
 
     self.ZF = ZF
-    self.VERBOSE = True
+    self.VERBOSE = op.directorVerbose
     self.nClusters = nClusters
     self.Tn = Tn  # it is used when assigning filters to clusters
     self.nUnitsCluster = nTotalUnits / nClusters
@@ -32,12 +32,12 @@ class LayerDirector:
     self.centralMem = simpleMemory.SimpleMemory(self, op.CM_size, op.CM_nPorts, op.CM_bytesCyclePort)
     self.clusters = []
     self.coordsWindow = {}
-    self.clustersProcWindow = {}
+    self.clustersProcWindow = {} # [windowID] -> count of clusters processing this window
     self.filtersPending = {}
     self.clustersReadingWindow = {}
     self.output = []
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20), self.cbClusterDoneReading, self.cbClusterDone))
+      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, op.SB_size_per_cluster, self.cbClusterDoneReading, self.cbClusterDone))
 
 
   def schedule(self, entity, when = 1):
@@ -49,10 +49,12 @@ class LayerDirector:
 
 
   def cycle(self):
+    #print "wakeQ = ", self.wakeQ
+    if self.VERBOSE: print "cycle", self.now, "wakeQ.len =", len(self.wakeQ)
     entities = [] 
     if len(self.wakeQ) !=0:
       aux, entities = self.wakeQ.popitem(False)
-      print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
+      if self.VERBOSE: print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
       for obj in entities:
         obj.cycle()
     self.now += 1
@@ -146,7 +148,7 @@ class LayerDirector:
     outPosX = 0
     for posInputX in range(0, Ix-Fx+1, stride):
       outPosY = 0
-      print posInputX
+      #print posInputX
       for posInputY in range(0, Iy-Fy+1, stride):
 
       # process each window
@@ -157,15 +159,20 @@ class LayerDirector:
         self.startWindowProcessing(auxWindow, windowID)
         self.coordsWindow[windowID] = [outPosX, outPosY]
  
-        while not self.isFinished(windowID):
+        timeout=1000
+        while not self.isFinished(windowID) and timeout > 0:
           self.cycle()
+          timeout -= 1
+        assert timeout, "Simulation Timed Out"
           
           #output[cntFilter, outPosY, outPosX] += biases[cntFilter]
+        windowID += 1 # ???
         outPosY += 1
       outPosX += 1
   
 
   def isFinished(self, windowID):
+    print "Pending Count = ", np.sum(self.filtersPending[windowID])
     for i,e in enumerate(self.filtersPending[windowID]):
       if e:
         return False
