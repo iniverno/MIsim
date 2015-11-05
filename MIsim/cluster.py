@@ -78,14 +78,14 @@ class Cluster:
     self.windowID = windowID
     self.windowSize = windowData.size
     self.subWindowSize = self.windowSize / self.nUnits 
-
+    self.unitLastPosInWindow = np.zeros((self.nUnits, 2))
     featsUnit = windowData.shape[0] / self.nUnits 
 
     self.unitsReadingWindow[self.windowID] = sets.Set()
     for cntUnit in range(self.nUnits): 
       self.unitsReadingWindow[self.windowID].add(cntUnit)
       self.unitFilterCnt[cntUnit] = 0
-
+      self.units[cntUnit].windowPointer = 0
       # divide the windowData and flat it
       self.subWindowDataFlat[cntUnit] = np.array(windowData[cntUnit*featsUnit : (cntUnit+1) * featsUnit])
       self.subWindowDataFlat[cntUnit] = np.swapaxes(self.subWindowDataFlat[cntUnit], 0, 2).flatten()
