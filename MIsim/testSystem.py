@@ -13,11 +13,27 @@ import random
 import options as op
 
 d = director.LayerDirector(op.nClusters, op.nClusters * op.nUnitsCluster, op.Ti, op.Tn, op.nEntries, op.ZF)
-auxData = np.zeros((48,3,3))
-for i,e in enumerate(auxData.flat):
-  auxData.flat[i] = random.randrange(2)
+auxData = np.load("/aenao-99/juddpatr/net_traces/alexnet/conv2-0.npy")
+input_dim = auxData.shape[1:]
+print input_dim
+
+fast = 1
+if fast:
+  auxData = auxData[:,:,:5,:5]
+
+auxFilters = np.zeros( (256,input_dim[0],3,3) )
+print auxFilters.shape
+
+nonzero = (auxData != 0).sum()
+print "Non-zero =", nonzero, "/", auxData.size, " (%d%%)"%(nonzero*100/auxData.size)
+
+#for i,e in enumerate(auxData.flat):
+#  auxData.flat[i] = random.randrange(2)
 #auxData [191, 2, 2] = 17
-print auxData
-auxFilters = np.zeros((384, 48, 3, 3))
-auxFilters [: , 47, 2, 2] = 2
-d.computeConvolutionalLayer(auxData, auxFilters, 1, 0, 1)
+#print auxData
+#auxFilters = np.zeros((384, 48, 3, 3))
+#auxFilters [: , 47, 2, 2] = 2
+stride = 1
+padding = 0
+group = 1
+d.computeConvolutionalLayer(auxData[0], auxFilters, stride, padding, group)
