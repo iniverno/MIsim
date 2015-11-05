@@ -55,6 +55,7 @@ class LayerDirector:
       print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
       for obj in entities:
         obj.cycle()
+      self.now = aux
     self.now += 1
 
 
