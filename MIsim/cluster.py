@@ -6,16 +6,18 @@
 ##################################################################################
 
 
+import options as op
 import numpy as np
 import unit 
 import sets
+import options as op
 
 class Cluster:
   def __init__(self, system, clusterID, nUnits, Ti, Tn, NBin_nEntries, SB_sizeCluster, cbClusterDoneReading, cbClusterDone):
     # cluster things 
     self.system = system
     self.cbClusterDoneReading = cbClusterDoneReading
-    self.VERBOSE = True
+    self.VERBOSE = op.verboseCluster
     self.clusterID = clusterID
     self.busy = False
 
@@ -35,8 +37,9 @@ class Cluster:
     self.unitToWindow = {}
     self.filterIDs = []
     self.unitFilterCnt = [0]*nUnits
+    self.unitsFinishedThisGroup = {}
     for i in range(nUnits):
-      self.units.append(unit.Unit(system, True, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.cbInputRead, self.cbDataAvailable))
+      self.units.append(unit.Unit(system, clusterID, i, NBin_nEntries, Ti, Tn, SB_sizeCluster/nUnits, self.cbInputRead, self.cbDataAvailable))
 
 ##################################################################################
 ###
@@ -62,13 +65,14 @@ class Cluster:
       #np.delete(filterSegment)
 
 ##################################################################################
-###
+### size: the size of the weights (one filter)
 ##################################################################################
  
   def initialize(self, size):
       #configure the size of SB at the unit
     for cntUnit in range(self.nUnits):      
       self.units[cntUnit].initialize(size / self.nUnits) 
+
 ##################################################################################
 ###
 ##################################################################################
@@ -110,47 +114,49 @@ class Cluster:
           self.busy = True
 
           # the cluster feeds the unit with new data
-          auxPos = self.unitLastPosInWindow[cntUnit][1]
+          #auxPos = self.unitLastPosInWindow[cntUnit][1]
+          # windowPointer = next position that the unit has to process in the 3d data
+          auxPos = self.units[cntUnit].windowPointer
           rangeToProcess = range(int(auxPos), int(min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)))
 
           # is the last fragment of the window for that unit?
           final = False
           
-          print "rangeToProcess:", cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
+          if self.VERBOSE > 1: print "[%d]"%(self.system.now),"rangeToProcess:", cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
           if rangeToProcess[-1] >= self.subWindowDataFlat[cntUnit].size-1:
             final = True
 
-            print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
+            if self.VERBOSE > 1: print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
 
           if self.system.ZF:
+            # data and offsets are variable length (size of the compressed brick)
             data, offsets = self.compress(self.subWindowDataFlat[cntUnit][rangeToProcess])
           else:
             data = self.subWindowDataFlat[cntUnit][rangeToProcess]
 
           #TODO: first approach, change!
-          addressData = self.windowSize * self.windowID + self.subWindowSize * cntUnit + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
+          addressData = self.windowSize * self.windowID + self.subWindowSize * cntUnit + self.units[cntUnit].windowPointer*2  # elements of 16bits
           self.system.centralMem.magicWrite(addressData, data)
-          if self.system.ZF:
-            addressOffset = 20000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
-            self.system.centralMem.magicWrite(addressOffset, offsets)
- 
-          if len(rangeToProcess) > 0:
-            self.units[cntUnit].finalFragmentOfWindow = final
+          self.units[cntUnit].NBin_dataOriginalSize = len(rangeToProcess)
+          self.units[cntUnit].busy = True
+          self.units[cntUnit].finalFragmentOfWindow = final
+
+          if len(data) > 0:
             #if self.system.ZF:
               #self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
             
-            self.units[cntUnit].NBin_dataOriginalSize = len(rangeToProcess)
             self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin)
-            self.units[cntUnit].busy = True
+            if self.VERBOSE > 1:  print "mem read unit ", cntUnit," (cluster ", self.clusterID, ") ", data.size, " elements"
 
-            #self.units[cntUnit].fill_NBin(data, origDataSize, final, offsets)
-            #self.system.schedule(self.units[cntUnit])
+            if self.system.ZF:
+              #addressOffset = 20000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
+              #self.system.centralMem.magicWrite(addressOffset, offsets)
+              assert offsets.size == data.size, "problem with offsets.size (%d) vs data.size (%d)"%(offsets.size, data.size)
+              self.units[cntUnit].fill_offsets(offsets)
           else:
             print "SKIP ", cntUnit, " ", self.clusterID, " ", nElements, " ", final
-            self.units[cntUnit].skipElements(nElements, final)
+            self.units[cntUnit].skipElements(nElements)
 
-          #functional
-          #self.units[cntUnit].compute()
 
           # increase pointer indicating last processed element
           self.unitLastPosInWindow[cntUnit][1] += nElements
@@ -165,12 +171,14 @@ class Cluster:
       if e:
         resData.append(e)
         resOffsets.append(i)
+    if self.VERBOSE > 1: print "compress:", data, resData, resOffsets
     return [np.asarray(resData), np.asarray(resOffsets)]
     
 
             
 ##################################################################################
-###
+### Called when an entire window is done and the output is in NBout for this
+### set of filters
 ##################################################################################
     
   def cbDataAvailable(self, unitID, entry):
@@ -180,28 +188,37 @@ class Cluster:
  
     # which are the filters corresponding to the data sent by the unit?
     auxFilterIDs = self.filterIDs[self.unitFilterCnt[unitID]]
+    
+    # use the first filter of the group of filters that are ready as key/index to 
+    # keep track how many units finished that group of filters
+    key = auxFilterIDs[0]
+    if key in self.unitsFinishedThisGroup:
+      self.unitsFinishedThisGroup[key] += 1
+    else:
+      self.unitsFinishedThisGroup[key] = 1
+
+    # processSubwindows()
+    # if all the units finished its part then ... todo
+    if self.unitsFinishedThisGroup[key] == self.nUnits:
+      self.unitsFinishedThisGroup[key] = 0
+      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") copying the output for filters ",  auxFilterIDs
+      self.system.putData(self.windowID, entry[:len(auxFilterIDs)], auxFilterIDs)
+      self.busy = False
+    else:
+      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") NOT copying the output for filters ",  auxFilterIDs
+
     # group of filters that the unit will produce the result for next
     self.unitFilterCnt[unitID] += 1
 
-    #TODO: here we should add the results of multiple subwindows if nUnits > 1
-    # processSubwindows()
-    # if all the units finished its part then ... todo
-     
-    print "[",self.system.now, "] (cluster ", self.clusterID, ") copying the output for filters ",  auxFilterIDs
-    self.system.putData(self.windowID, entry[:len(auxFilterIDs)], auxFilterIDs)
-   
-    #self.unitsProcWindow[self.windowID] -= 1
-    #if self.unitsProcWindow[self.windowID] == 0:
-    #  self.cbClusterDone(self.clusterID, self.windowID)
- 
             
 ##################################################################################
-###
+### Called when the unit has finished reading the brick from NBin
 ##################################################################################
     
   def cbInputRead(self, unitID):
     #check if the unit has finished processing the window
     if self.units[unitID].windowPointer >= self.subWindowDataFlat[unitID].size:
+      if self.VERBOSE : print "[",self.system.now, "] (cluster ", self.clusterID, " cbInputRead end of subwindow" 
       self.unitsReadingWindow[self.windowID].remove(unitID)
       if len(self.unitsReadingWindow[self.windowID]) == 0:
         self.cbClusterDoneReading(self.clusterID, self.windowID)
@@ -209,6 +226,7 @@ class Cluster:
     # the unit did not finish the window so next cycle we will fill its NBin
     # if we wanted to allow processing more than one window in a cluster, this synch point should 
     # be moved to the cycle function
+      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, "cbInputRead not finished unit %d"%(unitID)
       self.system.schedule(self)
             
-    if self.VERBOSE: print "director callback for unit #%d"%(unitID) 
+    if self.VERBOSE > 1: print "director callback for unit #%d"%(unitID) 

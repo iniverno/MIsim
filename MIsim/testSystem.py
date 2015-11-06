@@ -6,11 +6,12 @@
 ##################################################################################
 
 
+import options as op
 
 import director
 import numpy as np
 import random 
-import options as op
+
 
 d = director.LayerDirector(op.nClusters, op.nClusters * op.nUnitsCluster, op.Ti, op.Tn, op.nEntries, op.ZF)
 #auxData = np.load("/aenao-99/juddpatr/net_traces/alexnet/conv2-0.npy")

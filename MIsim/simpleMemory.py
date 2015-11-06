@@ -5,9 +5,11 @@
 #
 ##################################################################################
 
+import options as op
 from collections import deque
 from sets import Set
 import numpy as np
+import options as op
 
 # request = [cycle, type, address, size, ready]
 # some asumptions:
@@ -25,7 +27,7 @@ class SimpleMemory:
       self.requestors = Set([requestor])
     
   def __init__(self, system, size, nPorts, bytesCyclePort):
-    self.VERBOSE = True
+    self.VERBOSE = op.verboseMemory
     self.system = system
     self.nPorts = nPorts
     self.beingServed = []*nPorts
@@ -34,17 +36,18 @@ class SimpleMemory:
     self.bytesCyclePort = bytesCyclePort
 
 ##################################################################################
-###
+### Issue requests if there are available ports
+### 
 ##################################################################################
  
   def cycle(self):
     #if there is ports available and requests waiting
-    print "len beingServed:%d, nports: %d"%(len(self.beingServed), self.nPorts)
+    if self.VERBOSE: print "len beingServed:%d, nports: %d"%(len(self.beingServed), self.nPorts)
     if len(self.beingServed) < self.nPorts:
       for i in range(self.nPorts - len(self.beingServed)):
         if len(self.reqsQ) > 0:
           self.beingServed.append(self.reqsQ.popleft())
-
+    
     if len(self.beingServed) > 0:
       auxBeingServed = []
       for req in self.beingServed:
@@ -54,22 +57,22 @@ class SimpleMemory:
           if req.typeReq==0:
             if self.VERBOSE: print "simpleMemory serving read to ", req.addr, ", ", len(req.requestors), " requestors queue:", len(self.reqsQ)
             for requestor in req.requestors:
-           
+            
               requestor(req.addr, self.data[req.addr : req.addr + req.size])
           #write
           else:
             self.data[req.address : req.address + req.size] = req.data
         else:
-          print "reintroduced ", req.addr, " ", req.left, " ", len(self.reqsQ) 
+          if self.VERBOSE: print "reintroduced ", req.addr, " ", req.left, " ", len(self.reqsQ) 
           auxBeingServed.append(req)
       self.beingServed = auxBeingServed
-      print "SimpleMemory beingServed: ", len(self.beingServed )
- 
+      if self.VERBOSE: print "SimpleMemory beingServed: ", len(self.beingServed )
+      
       if len(self.beingServed) > 0 or len(self.reqsQ) > 0:
         self.system.schedule(self)
 
 ##################################################################################
-###
+### adds request to reqsQ 
 ##################################################################################
   
   def write(self, address, data):
@@ -78,7 +81,8 @@ class SimpleMemory:
     self.system.schedule(self)
 
 ##################################################################################
-###
+### adds request to reqsQ, reads can have multiple units requesting the same 
+### word
 ##################################################################################
  
   def read(self, address, size, requestor):
@@ -86,17 +90,17 @@ class SimpleMemory:
       print "SimpleMemory.read address:", address, " size:", size 
     present = False
     for r in self.reqsQ:
-      if r.addr == address and r.typeReq == 0:
+      if r.addr == address and r.typeReq == 0: # typeReq = 0 = read
         r.requestors.add(requestor)
         present = True
     if not present:
       auxReq = self.Request(address, 0, size, requestor = requestor) 
       self.reqsQ.append(auxReq)
     self.system.schedule(self)
-    print "queue: ",len(self.reqsQ) 
+    if self.VERBOSE: print "queue: ",len(self.reqsQ) 
 
 ##################################################################################
-###
+### write to memory directly, bypassing the reqsQ
 ##################################################################################
  
   def magicWrite(self, address, data):

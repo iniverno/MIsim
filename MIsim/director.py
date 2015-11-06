@@ -12,6 +12,7 @@ import cluster
 import simpleMemory 
 import options as op
 
+
 class LayerDirector:
 
   verboseUnits = True
@@ -23,7 +24,7 @@ class LayerDirector:
     self.now = 0
 
     self.ZF = ZF
-    self.VERBOSE = True
+    self.VERBOSE = op.verboseDirector
     self.nClusters = nClusters
     self.Tn = Tn  # it is used when assigning filters to clusters
     self.nUnitsCluster = nTotalUnits / nClusters
@@ -32,12 +33,12 @@ class LayerDirector:
     self.centralMem = simpleMemory.SimpleMemory(self, op.CM_size, op.CM_nPorts, op.CM_bytesCyclePort)
     self.clusters = []
     self.coordsWindow = {}
-    self.clustersProcWindow = {}
+    self.clustersProcWindow = {} # [windowID] -> count of clusters processing this window
     self.filtersPending = {}
     self.clustersReadingWindow = {}
     self.output = []
     for i in range(nClusters):
-      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, (1<<20), self.cbClusterDoneReading, self.cbClusterDone))
+      self.clusters.append(cluster.Cluster(self, i, self.nUnitsCluster, Ti, Tn, NBin_nEntries, op.SB_size_per_cluster, self.cbClusterDoneReading, self.cbClusterDone))
 
 
   def schedule(self, entity, when = 1):
@@ -49,14 +50,14 @@ class LayerDirector:
 
 
   def cycle(self):
+    if self.VERBOSE > 1: print "layerdirector, cycle ", self.now, len(self.wakeQ)
     entities = [] 
     if len(self.wakeQ) !=0:
       aux, entities = self.wakeQ.popitem(False)
-      print "layerdirector, cycle ", self.now, len(entities), " objects to wakeup"
+      if self.VERBOSE > 1: print "layerdirector, cycle ", self.now, aux, len(entities), " objects to wakeup"
+      self.now = aux
       for obj in entities:
         obj.cycle()
-      self.now = aux
-    self.now += 1
 
 
 ##################################################################################
@@ -70,10 +71,10 @@ class LayerDirector:
     self.nTotalFilters = weights.shape[0]
     #how many filters have to go to each cluster
     nFiltersPerCluster = self.nTotalFilters / self.nClusters
-    print "%d filters per cluster" % (nFiltersPerCluster)
+    if self.VERBOSE: print "%d filters per cluster" % (nFiltersPerCluster)
     # if the total number of filters is not a multiple of nClusters
     nAdditionalFilters = self.nTotalFilters - (nFiltersPerCluster * self.nClusters)
-    print "plus %d additional filters"%(nAdditionalFilters)
+    if self.VERBOSE: print "plus %d additional filters"%(nAdditionalFilters)
    
     # send the units the size of the filters so they can configure SB properly (simulation) 
     for i in range(self.nClusters): 
@@ -147,9 +148,8 @@ class LayerDirector:
     outPosX = 0
     for posInputX in range(0, Ix-Fx+1, stride):
       outPosY = 0
-      print posInputX
+      #print posInputX
       for posInputY in range(0, Iy-Fy+1, stride):
-
       # process each window
         auxWindow  = data[:, posInputY:posInputY+Fy, posInputX:posInputX+Fx]
         self.filtersPending[windowID] = [True] * self.nTotalFilters
@@ -158,30 +158,34 @@ class LayerDirector:
         self.startWindowProcessing(auxWindow, windowID)
         self.coordsWindow[windowID] = [outPosX, outPosY]
  
-        while not self.isFinished(windowID):
+        timeout=1000
+        while not self.isFinished(windowID) and timeout > 0:
           self.cycle()
-        windowID += 1
+          timeout -= 1
+        assert timeout, "Simulation Timed Out"
           
           #output[cntFilter, outPosY, outPosX] += biases[cntFilter]
+        windowID += 1
         outPosY += 1
       outPosX += 1
+    print "Total cycles: ", self.now 
   
 
   def isFinished(self, windowID):
-    howMany= 0 
+    #print "Pending Count = ", np.sum(self.filtersPending[windowID])
     for i,e in enumerate(self.filtersPending[windowID]):
       if e:
-        howMany += 1
-    
-    print "There are %d fitlers pending"%(howMany)
-    return howMany == 0
+        if self.VERBOSE > 1: print "pendingFilters for window %d"%(windowID)
+        return False
+    if self.VERBOSE > 1: print "pendingFilters for window %d  LISTO"%(windowID)
+    return True
     
 
 ##################################################################################
 ###
 ##################################################################################
   def initializeWindow(self, windowData, windowID):
-    if self.VERBOSE: print "[director] Initializing window #%d"%(windowID)
+    if self.VERBOSE: print "[director] [%d] Initializing window #%d"%(self.now, windowID)
 
     #self.windowsDataFlat[windowID] = np.swapaxes(windowData, 0, 2).flatten()
     self.clustersProcWindow[windowID] = self.nClusters
@@ -197,7 +201,6 @@ class LayerDirector:
     if self.VERBOSE: print "[director] Processing of window #%d"%(windowID)
 
     for cntCluster in range(self.nClusters):
-      #if not self.clusters[cntCluster].busy:
       self.schedule(self.clusters[cntCluster])
 
 ##################################################################################
@@ -211,6 +214,7 @@ class LayerDirector:
 
 
   def putData(self, windowID, data, filterIDs):
+    if self.VERBOSE > 1: print "windowID: ", windowID, " filterIDs:", filterIDs 
     for f in filterIDs:
       self.filtersPending[windowID][f] = False
 
