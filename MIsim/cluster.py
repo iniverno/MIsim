@@ -115,6 +115,7 @@ class Cluster:
 
           # the cluster feeds the unit with new data
           #auxPos = self.unitLastPosInWindow[cntUnit][1]
+          # windowPointer = next position that the unit has to process in the 3d data
           auxPos = self.units[cntUnit].windowPointer
           rangeToProcess = range(int(auxPos), int(min(auxPos + nElements, self.subWindowDataFlat[cntUnit].size)))
 
@@ -128,6 +129,7 @@ class Cluster:
             if self.VERBOSE: print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
 
           if self.system.ZF:
+            # data and offsets are variable length (size of the compressed brick)
             data, offsets = self.compress(self.subWindowDataFlat[cntUnit][rangeToProcess])
           else:
             data = self.subWindowDataFlat[cntUnit][rangeToProcess]
@@ -175,7 +177,8 @@ class Cluster:
 
             
 ##################################################################################
-###
+### Called when an entire window is done and the output is in NBout for this
+### set of filters
 ##################################################################################
     
   def cbDataAvailable(self, unitID, entry):
@@ -194,7 +197,6 @@ class Cluster:
     else:
       self.unitsFinishedThisGroup[key] = 1
 
-    #TODO: here we should add the results of multiple subwindows if nUnits > 1
     # processSubwindows()
     # if all the units finished its part then ... todo
     if self.unitsFinishedThisGroup[key] == self.nUnits:
@@ -208,7 +210,7 @@ class Cluster:
 
             
 ##################################################################################
-###
+### Called when the unit has finished reading the brick from NBin
 ##################################################################################
     
   def cbInputRead(self, unitID):

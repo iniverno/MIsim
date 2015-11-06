@@ -200,7 +200,10 @@ class Unit:
         else:
           SB_toPipe[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
         # the pipeline is modelled as a dummy queue where the correct result is stored for latencyPipeline cycles  
-        result.append(np.sum(SB_toPipe[f] * NBin_toPipe))
+        if op.do_comp:
+          result.append(np.sum(SB_toPipe[f] * NBin_toPipe))
+        else:
+          result.append(np.array( (self.Ti*self.Tn) ))
 
         if self.VERBOSE and False:
           print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)

@@ -11,7 +11,7 @@ clusterVerbose  = 1
 unitVerbose     = 1
 directorVerbose = 1
 
-ZF = 0
+ZF = 1 
 latencyPipeline = 8
 verboseUnit = 0
 verboseCluster = 0
@@ -21,6 +21,8 @@ verboseMemory = 0
 CM_nPorts = 2
 CM_bytesCyclePort = 2
 CM_size = 1 << 22
+
+do_comp = 0
 
 # SB
 SB_size_per_cluster = 1<<22 # 2^22 = 4MB
@@ -34,11 +36,7 @@ if ZF:
 
 else:
   nClusters = 16
-<<<<<<< HEAD
   nUnitsCluster = 16
-=======
-  nUnitsCluster = 1
->>>>>>> 34e8827022a059033e46a25170059b9789d6771b
   Ti = 16
   Tn = 16
   nEntries = 16

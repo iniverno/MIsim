@@ -36,7 +36,8 @@ class SimpleMemory:
     self.bytesCyclePort = bytesCyclePort
 
 ##################################################################################
-###
+### Issue requests if there are available ports
+### 
 ##################################################################################
  
   def cycle(self):
@@ -46,7 +47,7 @@ class SimpleMemory:
       for i in range(self.nPorts - len(self.beingServed)):
         if len(self.reqsQ) > 0:
           self.beingServed.append(self.reqsQ.popleft())
-
+    
     if len(self.beingServed) > 0:
       auxBeingServed = []
       for req in self.beingServed:
@@ -56,7 +57,7 @@ class SimpleMemory:
           if req.typeReq==0:
             if self.VERBOSE: print "simpleMemory serving read to ", req.addr, ", ", len(req.requestors), " requestors queue:", len(self.reqsQ)
             for requestor in req.requestors:
-           
+            
               requestor(req.addr, self.data[req.addr : req.addr + req.size])
           #write
           else:
@@ -66,12 +67,12 @@ class SimpleMemory:
           auxBeingServed.append(req)
       self.beingServed = auxBeingServed
       if self.VERBOSE: print "SimpleMemory beingServed: ", len(self.beingServed )
- 
+      
       if len(self.beingServed) > 0 or len(self.reqsQ) > 0:
         self.system.schedule(self)
 
 ##################################################################################
-###
+### adds request to reqsQ 
 ##################################################################################
   
   def write(self, address, data):
@@ -80,7 +81,8 @@ class SimpleMemory:
     self.system.schedule(self)
 
 ##################################################################################
-###
+### adds request to reqsQ, reads can have multiple units requesting the same 
+### word
 ##################################################################################
  
   def read(self, address, size, requestor):
@@ -98,7 +100,7 @@ class SimpleMemory:
     if self.VERBOSE: print "queue: ",len(self.reqsQ) 
 
 ##################################################################################
-###
+### write to memory directly, bypassing the reqsQ
 ##################################################################################
  
   def magicWrite(self, address, data):
