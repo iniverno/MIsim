@@ -129,15 +129,12 @@ class Unit:
       print "fill_NBin @%d in unit %d (cluster %d) (%d elements)"%(address, self.unitID, self.clusterID, data.size)
     self.NBin_data = data 
     self.localWindowPointer = self.windowPointer
-#    self.finalFragmentOfWindow = final
 
     self.filtersProcessed = 0
     self.filtersToProcess = min(self.Tn, self.SB_totalFilters - self.filtersProcessed) 
 
     self.NBout_ptr = 0
     self.NBin_ptr = 0
-
-    #self.NBin_dataOriginalSize = data.size
 
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True
@@ -169,7 +166,6 @@ class Unit:
        
       self.headPipe = []
 
- 
     if self.NBin_ready <= self.system.now and not self.skipThisChunk:
       if self.VERBOSE: 
         print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
@@ -259,7 +255,7 @@ class Unit:
       self.busy = False # The cluster can assign us work to do
       self.cbInputRead(self.unitID)
 
-      pipePacket = [self.system.now + op.latencyPipeline, True, [0]*self.Tn]
+      pipePacket = [self.system.now + op.latencyPipeline, self.finalFragmentOfWindow, [0]*self.Tn]
       assert self.pipe.qsize() < op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
       self.pipe.put(pipePacket)
    
@@ -273,12 +269,7 @@ class Unit:
 ###
 ##################################################################################
  
-  def skipElements(self, final, nElements):
+  def skipElements(self, nElements):
     self.skipThisChunk = True
     self.system.schedule(self)
-    #self.windowPointer += nElements
-    #if final:
-    #  pipePacket = [self.system.now + op.latencyPipeline, True, np.zeros((self.Tn))]
-    #  assert self.pipe.qsize() <= op.latencyPipeline, "Problem in the pipeline, Queue has too many elements"
-    #  self.pipe.put(pipePacket)
 
