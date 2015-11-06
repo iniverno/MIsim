@@ -9,6 +9,7 @@ import options as op
 from collections import deque
 from sets import Set
 import numpy as np
+import options as op
 
 # request = [cycle, type, address, size, ready]
 # some asumptions:
@@ -26,7 +27,7 @@ class SimpleMemory:
       self.requestors = Set([requestor])
     
   def __init__(self, system, size, nPorts, bytesCyclePort):
-    self.VERBOSE = op.memVerbose
+    self.VERBOSE = op.verboseMemory
     self.system = system
     self.nPorts = nPorts
     self.beingServed = []*nPorts
