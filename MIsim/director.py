@@ -12,6 +12,7 @@ import cluster
 import simpleMemory 
 import options as op
 
+
 class LayerDirector:
 
   verboseUnits = True
@@ -151,7 +152,6 @@ class LayerDirector:
       outPosY = 0
       #print posInputX
       for posInputY in range(0, Iy-Fy+1, stride):
-
       # process each window
         auxWindow  = data[:, posInputY:posInputY+Fy, posInputX:posInputX+Fx]
         self.filtersPending[windowID] = [True] * self.nTotalFilters
@@ -173,7 +173,7 @@ class LayerDirector:
   
 
   def isFinished(self, windowID):
-    print "Pending Count = ", np.sum(self.filtersPending[windowID])
+    #print "Pending Count = ", np.sum(self.filtersPending[windowID])
     for i,e in enumerate(self.filtersPending[windowID]):
       if e:
         return False
@@ -200,8 +200,7 @@ class LayerDirector:
     if self.VERBOSE: print "[director] Processing of window #%d"%(windowID)
 
     for cntCluster in range(self.nClusters):
-      if not self.clusters[cntCluster].busy:
-        self.schedule(self.clusters[cntCluster])
+      self.schedule(self.clusters[cntCluster])
 
 ##################################################################################
 ###

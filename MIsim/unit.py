@@ -7,7 +7,7 @@
 
 import numpy as np
 import math
-import options as op 
+import options as op
 import Queue as Q
 import stats
 
@@ -47,14 +47,14 @@ class Unit:
     #These pointers are used when computing the data in the buffers (compute function)
     self.windowPointer = 0  #it tracks the next filter to compute
 
-
-
 ##################################################################################
 ###
 ##################################################################################
  
   # this function assigns SB with the right shape according to the filter size
   def initialize(self, filterSize):
+
+    # divide slice into rows of (filterSize)
     nFiltersFit = self.SB_size / filterSize
     self.SB_data = np.zeros((nFiltersFit, filterSize))
 
@@ -174,15 +174,19 @@ class Unit:
       NBin_toPipe = np.zeros((self.Ti))
       result = []
 
-     # the input data is read
-      NBin_toPipe = self.NBin_data[self.NBin_ptr * self.Ti : self.NBin_ptr * self.Ti + self.Ti]
+      # the input data is read
+      row = self.NBin_ptr * self.Ti
+      NBin_toPipe = self.NBin_data[row : row + self.Ti]
  
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
         # select the proper filter weights:
         #if Zero-Free: offsets must be used
         if self.system.ZF:
-          SB_toPipe[f] = self.SB_data[filterNow] [self.windowPointer + self.offsets[self.NBin_ptr] : self.windowPointer + self.offsets[self.NBin_ptr] + self.Ti]
+          filterIdx = self.windowPointer + self.offsets[self.NBin_ptr] 
+          weights = self.SB_data[filterNow][filterIdx : filterIdx + self.Ti]
+          assert len(weights) > 0
+          SB_toPipe[f] = weights
         else:
           SB_toPipe[f] = self.SB_data[filterNow] [self.localWindowPointer : self.localWindowPointer + self.Ti]
         # the pipeline is modelled as a dummy queue where the correct result is stored for latencyPipeline cycles  

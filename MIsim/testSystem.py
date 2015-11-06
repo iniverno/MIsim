@@ -6,20 +6,23 @@
 ##################################################################################
 
 
+import options 
 
 import director
 import numpy as np
 import random 
-import options as op
+
+global op
+op = options.Options('test.cfg')
 
 d = director.LayerDirector(op.nClusters, op.nClusters * op.nUnitsCluster, op.Ti, op.Tn, op.nEntries, op.ZF)
 auxData = np.load("/aenao-99/juddpatr/net_traces/alexnet/conv2-0.npy")
 input_dim = auxData.shape[1:]
 print input_dim
 
-fast = 1
+fast = 0
 if fast:
-  auxData = auxData[:,:,:5,:5]
+  auxData = auxData[:,:,:6,:6]
 
 auxFilters = np.zeros( (256,input_dim[0],3,3) )
 print auxFilters.shape
@@ -36,4 +39,4 @@ print "Non-zero =", nonzero, "/", auxData.size, " (%d%%)"%(nonzero*100/auxData.s
 stride = 1
 padding = 0
 group = 1
-d.computeConvolutionalLayer(auxData[0], auxFilters, stride, padding, group)
+#d.computeConvolutionalLayer(auxData[0], auxFilters, stride, padding, group)

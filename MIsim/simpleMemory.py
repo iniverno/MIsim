@@ -5,7 +5,7 @@
 #
 ##################################################################################
 
-import options as op 
+import options as op
 from collections import deque
 from sets import Set
 import numpy as np

@@ -6,7 +6,7 @@
 ##################################################################################
 
 
-import options as op 
+import options as op
 import numpy as np
 import unit 
 import sets
@@ -63,13 +63,14 @@ class Cluster:
       #np.delete(filterSegment)
 
 ##################################################################################
-###
+### size: the size of the weights (one filter)
 ##################################################################################
  
   def initialize(self, size):
       #configure the size of SB at the unit
     for cntUnit in range(self.nUnits):      
       self.units[cntUnit].initialize(size / self.nUnits) 
+
 ##################################################################################
 ###
 ##################################################################################
@@ -121,7 +122,7 @@ class Cluster:
           if rangeToProcess[-1] >= self.subWindowDataFlat[cntUnit].size-1:
             final = True
 
-            print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
+            if self.VERBOSE: print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
 
           if self.system.ZF:
             data, offsets = self.compress(self.subWindowDataFlat[cntUnit][rangeToProcess])
@@ -188,7 +189,7 @@ class Cluster:
     # processSubwindows()
     # if all the units finished its part then ... todo
      
-    print "[%d]"%self.system.now,"(cluster %2d)"%self.clusterID, "copying the output for filters ",  auxFilterIDs
+    if self.VERBOSE: print "[%d]"%self.system.now,"(cluster %2d)"%self.clusterID, "copying the output for filters ",  auxFilterIDs
     self.system.putData(self.windowID, entry[:len(auxFilterIDs)], auxFilterIDs)
    
     #self.unitsProcWindow[self.windowID] -= 1
