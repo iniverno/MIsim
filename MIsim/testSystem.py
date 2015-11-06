@@ -13,15 +13,17 @@ import random
 import options as op
 
 d = director.LayerDirector(op.nClusters, op.nClusters * op.nUnitsCluster, op.Ti, op.Tn, op.nEntries, op.ZF)
-auxData = np.load("/aenao-99/juddpatr/net_traces/alexnet/conv2-0.npy")
-input_dim = auxData.shape[1:]
-print input_dim
+#auxData = np.load("/aenao-99/juddpatr/net_traces/alexnet/conv2-0.npy")
+#input_dim = auxData.shape[1:]
+#print input_dim
+ 
+auxData = np.zeros( (1,96,3,3) )
 
-fast = 1
-if fast:
-  auxData = auxData[:,:,:5,:5]
+random.seed(99)
+for i,e in enumerate(auxData.flat):
+  auxData.flat[i] = random.randrange(2)
 
-auxFilters = np.zeros( (256,input_dim[0],3,3) )
+auxFilters = np.zeros( (256, 96,3,3) )
 print auxFilters.shape
 
 nonzero = (auxData != 0).sum()

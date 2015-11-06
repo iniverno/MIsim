@@ -8,6 +8,7 @@
 from collections import deque
 from sets import Set
 import numpy as np
+import options as op
 
 # request = [cycle, type, address, size, ready]
 # some asumptions:
@@ -25,7 +26,7 @@ class SimpleMemory:
       self.requestors = Set([requestor])
     
   def __init__(self, system, size, nPorts, bytesCyclePort):
-    self.VERBOSE = True
+    self.VERBOSE = op.verboseMemory
     self.system = system
     self.nPorts = nPorts
     self.beingServed = []*nPorts
@@ -39,7 +40,7 @@ class SimpleMemory:
  
   def cycle(self):
     #if there is ports available and requests waiting
-    print "len beingServed:%d, nports: %d"%(len(self.beingServed), self.nPorts)
+    if self.VERBOSE: print "len beingServed:%d, nports: %d"%(len(self.beingServed), self.nPorts)
     if len(self.beingServed) < self.nPorts:
       for i in range(self.nPorts - len(self.beingServed)):
         if len(self.reqsQ) > 0:
@@ -60,10 +61,10 @@ class SimpleMemory:
           else:
             self.data[req.address : req.address + req.size] = req.data
         else:
-          print "reintroduced ", req.addr, " ", req.left, " ", len(self.reqsQ) 
+          if self.VERBOSE: print "reintroduced ", req.addr, " ", req.left, " ", len(self.reqsQ) 
           auxBeingServed.append(req)
       self.beingServed = auxBeingServed
-      print "SimpleMemory beingServed: ", len(self.beingServed )
+      if self.VERBOSE: print "SimpleMemory beingServed: ", len(self.beingServed )
  
       if len(self.beingServed) > 0 or len(self.reqsQ) > 0:
         self.system.schedule(self)
@@ -93,7 +94,7 @@ class SimpleMemory:
       auxReq = self.Request(address, 0, size, requestor = requestor) 
       self.reqsQ.append(auxReq)
     self.system.schedule(self)
-    print "queue: ",len(self.reqsQ) 
+    if self.VERBOSE: print "queue: ",len(self.reqsQ) 
 
 ##################################################################################
 ###
