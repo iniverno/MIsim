@@ -184,8 +184,12 @@ class Unit:
 
      # the input data is read
       NBin_toPipe = self.NBin_data[self.NBin_ptr * self.Ti : self.NBin_ptr * self.Ti + self.Ti]
-      if self.VERBOSE:
+      if self.VERBOSE and self.system.ZF:
         print "unit %d (cluster %d)"%(self.unitID, self.clusterID), "NBin_ptr:", self.NBin_ptr, " pointer:",self.windowPointer, " NBin_data:", self.NBin_data.size, " NBout_ptr:", self.NBout_ptr, " offset.size:", self.offsets.size, " offset:", self.offsets[self.NBin_ptr]
+      if self.VERBOSE and not self.system.ZF:
+        print "unit %d (cluster %d)"%(self.unitID, self.clusterID), "NBin_ptr:", self.NBin_ptr, " pointer:",self.windowPointer, " NBin_data:", self.NBin_data.size, " NBout_ptr:", self.NBout_ptr
+
+
  
       for f in range(self.filtersToProcess):  
         filterNow = self.NBout_ptr * self.Tn + f
