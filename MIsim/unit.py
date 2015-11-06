@@ -95,13 +95,17 @@ class Unit:
 ##################################################################################
 ###
 ##################################################################################
-  def compress(self, data):
+  def compress(self, data, compress = True):
+    if not compress:
+      return [data, range(len(data))]
+
     resData = []
     resOffsets = []
     for i,e in enumerate(data):
       if e:
         resData.append(e)
         resOffsets.append(i)
+    print "compress data:" , resData, " offsets: ", resOffsets
     return [np.asarray(resData), np.asarray(resOffsets)]
  
 ##################################################################################
@@ -140,7 +144,7 @@ class Unit:
     self.NBin_ready = self.system.now + 1
     
     if self.system.ZF:
-      self.NBin_data, self.offsets = self.compress(data)
+      self.NBin_data, self.offsets = self.compress(data, True)
 
     self.system.schedule(self)
 
@@ -164,7 +168,7 @@ class Unit:
  
     if self.NBin_ready <= self.system.now:
       if self.VERBOSE: 
-        print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
+        print '[%d] unit %d (cluster %d), NBin entry %d (NBin.size %d), pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.NBin_data.size, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 
       self.busy = True
       
@@ -189,7 +193,7 @@ class Unit:
         result.append(np.sum(SB_toPipe[f] * NBin_toPipe))
 
         if self.VERBOSE and False:
-          print '[%d] unit %d (cluster %d), NBin entry %d, computing filter #%d, pos %d-%d %d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
+          print '[%d] unit %d (cluster %d), NBin entry %d (NBin.data.size: %d), computing filter #%d, pos %d-%d %d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.NBin_data.size, self.SB_entryToFilterID[filterNow], self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr * self.Tn + f, self.NBout_ptr)
  
       #if the number of filters processed this cycle is less than Tn, fill with zeroes
       for cntFill in range(self.Tn - self.filtersToProcess):
@@ -202,7 +206,7 @@ class Unit:
       #we insert the packet later when we now if this the final result for that NBout entry or not
       # after the next block of instructions
       useData = self.finalFragmentOfWindow
-
+      print self.NBin_ptr, " ", self.NBin_nEntries, " ", self.NBin_data.size
       # NBin_ptr is incremented
       if self.NBin_ptr < min(self.NBin_nEntries, self.NBin_data.size / self.Ti) - 1:
         self.NBin_ptr += 1

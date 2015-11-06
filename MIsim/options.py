@@ -12,15 +12,14 @@ latencyPipeline = 8
 # Central Memory
 CM_nPorts = 2
 CM_bytesCyclePort = 2
-CM_size = 100000
+CM_size = 1 << 22
 
 if ZF:
-  nClusters = 16
+  nClusters = 4
   nUnitsCluster = 16
   Ti = 1
   Tn = 16
   nEntries = 16
-  ZF = True
 
 else:
   nClusters = 4

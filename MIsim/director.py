@@ -160,6 +160,7 @@ class LayerDirector:
  
         while not self.isFinished(windowID):
           self.cycle()
+        windowID += 1
           
           #output[cntFilter, outPosY, outPosX] += biases[cntFilter]
         outPosY += 1
@@ -167,10 +168,13 @@ class LayerDirector:
   
 
   def isFinished(self, windowID):
+    howMany= 0 
     for i,e in enumerate(self.filtersPending[windowID]):
       if e:
-        return False
-    return True
+        howMany += 1
+    
+    print "There are %d fitlers pending"%(howMany)
+    return howMany == 0
     
 
 ##################################################################################
@@ -193,8 +197,8 @@ class LayerDirector:
     if self.VERBOSE: print "[director] Processing of window #%d"%(windowID)
 
     for cntCluster in range(self.nClusters):
-      if not self.clusters[cntCluster].busy:
-        self.schedule(self.clusters[cntCluster])
+      #if not self.clusters[cntCluster].busy:
+      self.schedule(self.clusters[cntCluster])
 
 ##################################################################################
 ###
