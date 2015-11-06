@@ -119,11 +119,11 @@ class Cluster:
           # is the last fragment of the window for that unit?
           final = False
           
-          if self.VERBOSE: print "[%d]"%(self.system.now),"rangeToProcess:", cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
+          if self.VERBOSE > 1: print "[%d]"%(self.system.now),"rangeToProcess:", cntUnit, " ", rangeToProcess, " ", auxPos, " ", nElements, " ", self.subWindowDataFlat[cntUnit].size
           if rangeToProcess[-1] >= self.subWindowDataFlat[cntUnit].size-1:
             final = True
 
-            if self.VERBOSE: print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
+            if self.VERBOSE > 1: print "[",self.system.now, "] LastFragment of window being copied in unit ", cntUnit," (cluster ", self.clusterID, ") ", self.units[cntUnit].windowPointer, " ", len(rangeToProcess), " ", self.subWindowDataFlat[cntUnit].size
 
           if self.system.ZF:
             data, offsets = self.compress(self.subWindowDataFlat[cntUnit][rangeToProcess])
@@ -135,14 +135,14 @@ class Cluster:
           self.system.centralMem.magicWrite(addressData, data)
           self.units[cntUnit].NBin_dataOriginalSize = len(rangeToProcess)
           self.units[cntUnit].busy = True
+          self.units[cntUnit].finalFragmentOfWindow = final
 
           if len(data) > 0:
-            self.units[cntUnit].finalFragmentOfWindow = final
             #if self.system.ZF:
               #self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
             
             self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin)
-            if self.VERBOSE:  print "mem read unit ", cntUnit," (cluster ", self.clusterID, ") ", data.size, " elements"
+            if self.VERBOSE > 1:  print "mem read unit ", cntUnit," (cluster ", self.clusterID, ") ", data.size, " elements"
 
             if self.system.ZF:
               #addressOffset = 20000 * self.windowID + self.unitLastPosInWindow[cntUnit][1]*2  # elements of 16bits
@@ -151,7 +151,7 @@ class Cluster:
               self.units[cntUnit].fill_offsets(offsets)
           else:
             print "SKIP ", cntUnit, " ", self.clusterID, " ", nElements, " ", final
-            self.units[cntUnit].skipElements(nElements, final)
+            self.units[cntUnit].skipElements(nElements)
 
 
           # increase pointer indicating last processed element
@@ -167,7 +167,7 @@ class Cluster:
       if e:
         resData.append(e)
         resOffsets.append(i)
-    if self.VERBOSE: print "compress:", data, resData, resOffsets
+    if self.VERBOSE > 1: print "compress:", data, resData, resOffsets
     return [np.asarray(resData), np.asarray(resOffsets)]
     
 
@@ -200,6 +200,8 @@ class Cluster:
       if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") copying the output for filters ",  auxFilterIDs
       self.system.putData(self.windowID, entry[:len(auxFilterIDs)], auxFilterIDs)
       self.busy = False
+    else:
+      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") NOT copying the output for filters ",  auxFilterIDs
 
     # group of filters that the unit will produce the result for next
     self.unitFilterCnt[unitID] += 1
@@ -212,7 +214,7 @@ class Cluster:
   def cbInputRead(self, unitID):
     #check if the unit has finished processing the window
     if self.units[unitID].windowPointer >= self.subWindowDataFlat[unitID].size:
-      if self.VERBOSE: print "cbInputRead end of subwindow" 
+      if self.VERBOSE : print "[",self.system.now, "] (cluster ", self.clusterID, " cbInputRead end of subwindow" 
       self.unitsReadingWindow[self.windowID].remove(unitID)
       if len(self.unitsReadingWindow[self.windowID]) == 0:
         self.cbClusterDoneReading(self.clusterID, self.windowID)
@@ -220,6 +222,7 @@ class Cluster:
     # the unit did not finish the window so next cycle we will fill its NBin
     # if we wanted to allow processing more than one window in a cluster, this synch point should 
     # be moved to the cycle function
+      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, "cbInputRead not finished unit %d"%(unitID)
       self.system.schedule(self)
             
-    if self.VERBOSE: print "director callback for unit #%d"%(unitID) 
+    if self.VERBOSE > 1: print "director callback for unit #%d"%(unitID) 
