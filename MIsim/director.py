@@ -158,7 +158,7 @@ class LayerDirector:
         self.startWindowProcessing(auxWindow, windowID)
         self.coordsWindow[windowID] = [outPosX, outPosY]
  
-        timeout=1000
+        timeout=10000
         while not self.isFinished(windowID) and timeout > 0:
           self.cycle()
           timeout -= 1

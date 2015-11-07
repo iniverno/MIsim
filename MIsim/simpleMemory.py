@@ -18,12 +18,13 @@ import options as op
 
 class SimpleMemory:
   class Request:
-    def __init__(self, addr, typeReq, size, requestor=[], data=[]):
+    def __init__(self, addr, typeReq, size, requestor=[], data=[], final=False):
       self.addr = addr
       self.typeReq = typeReq # 0: read, 1: write
       self.size = size
       self.left = size
       self.data = data
+      self.final = final
       self.requestors = Set([requestor])
     
   def __init__(self, system, size, nPorts, bytesCyclePort):
@@ -58,7 +59,7 @@ class SimpleMemory:
             if self.VERBOSE: print "simpleMemory serving read to ", req.addr, ", ", len(req.requestors), " requestors queue:", len(self.reqsQ)
             for requestor in req.requestors:
             
-              requestor(req.addr, self.data[req.addr : req.addr + req.size])
+              requestor(req.addr, self.data[req.addr : req.addr + req.size], req.final)
           #write
           else:
             self.data[req.address : req.address + req.size] = req.data
@@ -85,7 +86,7 @@ class SimpleMemory:
 ### word
 ##################################################################################
  
-  def read(self, address, size, requestor):
+  def read(self, address, size, requestor, final=False):
     if self.VERBOSE: 
       print "SimpleMemory.read address:", address, " size:", size 
     present = False
@@ -94,7 +95,7 @@ class SimpleMemory:
         r.requestors.add(requestor)
         present = True
     if not present:
-      auxReq = self.Request(address, 0, size, requestor = requestor) 
+      auxReq = self.Request(address, 0, size, requestor = requestor, final = final) 
       self.reqsQ.append(auxReq)
     self.system.schedule(self)
     if self.VERBOSE: print "queue: ",len(self.reqsQ) 

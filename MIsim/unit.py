@@ -39,6 +39,11 @@ class Unit:
     self.NBin_ready = float("inf")
     self.offsets = []
     self.skipThisChunk = False
+    
+    #Stuff for the dummy units
+    self.dummyWhenCallInput = float("inf") 
+    self.dummyWhenCallData = float("inf") 
+    self.nullOutput = [0]*Tn
 
     self.pipe = Q.Queue()
     self.headPipe = [] # aux var used to process the packet leaving the pipeline
@@ -121,7 +126,7 @@ class Unit:
 ###
 ##################################################################################
  
-  def fill_NBin(self, address, data):
+  def fill_NBin(self, address, data, final):
     #assert offsets != [] or self.Ti !=1, "Something is wrong with the parameters of fill_NBin"
     assert self.Ti*self.NBin_nEntries >= data.size, "Something is wrong with the sizes at fill_NBin %d/%d"%(self.Ti*self.NBin_nEntries,  data.size)
 
@@ -139,7 +144,9 @@ class Unit:
     #the flag busy will indicate the cluster the data is ready and the unit is processing data so its computeCycle has to be called
     self.busy = True
     self.NBin_ready = self.system.now + 1
-    
+
+    if self.VERBOSE: print "final:", final  
+    self.finalFragmentOfWindow = final
     #if self.system.ZF:
     #  self.NBin_data, self.offsets = self.compress(data)
 
@@ -152,6 +159,50 @@ class Unit:
     if self.lastTimeWokenUp == self.system.now:
       assert False, "woken up twice unit %d (cluster %d)"%(self.unitID, self.clusterID)
     self.lastTimeWokenUp = self.system.now
+
+    if op.dummyUnits:
+      if self.skipThisChunk:
+        self.skipThisChunk= False 
+        self.windowPointer += self.NBin_dataOriginalSize
+        self.dummyWhenCallInput = float("inf") 
+        self.NBin_ready = float("inf")
+        self.busy = False # The cluster can assign us work to do
+        self.cbInputRead(self.unitID) 
+        if self.finalFragmentOfWindow:
+          self.cbDataAvailable(self.unitID, self.nullOutput)  
+
+
+      if self.NBin_ready == self.system.now:
+        self.busy = True
+        if self.skipThisChunk: 
+          self.skipThisChunk= False
+          self.NBin_data = np.zeros((1))
+        self.dummyWhenCallInput = (self.NBin_data.size / self.Ti) * self.NBout_nEntries
+        self.system.schedule(self, self.dummyWhenCallInput)
+        self.dummyWhenCallInput += self.system.now
+
+        if self.VERBOSE > 1: print "unit %d (cluster %d) callInput:%d"%(self.unitID, self.clusterID, self.dummyWhenCallInput)
+
+        if self.finalFragmentOfWindow:
+          self.dummyWhenCallData = (self.NBin_data.size / self.Ti) * self.NBout_nEntries + op.latencyPipeline
+          self.system.schedule(self, self.dummyWhenCallData)
+          self.dummyWhenCallData += self.system.now
+          if self.VERBOSE > 1: print "unit %d (cluster %d) callData:%d"%(self.unitID, self.clusterID, self.dummyWhenCallData)
+
+      if self.system.now == self.dummyWhenCallInput:
+        self.dummyWhenCallInput = float("inf")
+        self.windowPointer += self.NBin_dataOriginalSize
+        if self.VERBOSE: print  "unit %d (cluster %d) pointer: %d"%(self.unitID, self.clusterID, self.windowPointer)
+        self.NBin_ready = float("inf") # no data to process in the buffer
+        self.busy = False # The cluster can assign us work to do
+
+        self.cbInputRead(self.unitID)
+      if self.system.now == self.dummyWhenCallData:
+        self.dummyWhenCallData = float("inf")
+        self.busy = False
+        self.cbDataAvailable(self.unitID, self.nullOutput)
+
+      return
 
     #print "[%d] (cluster %d) unit %d"%(self.system.now, self.clusterID, self.unitID) 
     if self.headPipe == []:
@@ -166,7 +217,7 @@ class Unit:
        
       self.headPipe = []
 
-    if self.NBin_ready <= self.system.now and not self.skipThisChunk:
+    if self.NBin_ready == self.system.now and not self.skipThisChunk:
       if self.VERBOSE: 
         print '[%d] unit %d (cluster %d), NBin entry %d, pos %d-%d, %d'%(self.system.now, self.unitID, self.clusterID, self.NBin_ptr, self.localWindowPointer , self.localWindowPointer + self.Ti, self.NBout_ptr)
 

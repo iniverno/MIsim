@@ -18,7 +18,7 @@ d = director.LayerDirector(op.nClusters, op.nClusters * op.nUnitsCluster, op.Ti,
 #input_dim = auxData.shape[1:]
 #print input_dim
 
-auxData = np.zeros((1,96, 27, 27))
+auxData = np.zeros((1,96, 27,27,))
 
 for i,e in enumerate(auxData.flat):
   auxData.flat[i] = random.randrange(2)

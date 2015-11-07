@@ -145,7 +145,7 @@ class Cluster:
             #if self.system.ZF:
               #self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
             
-            self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin)
+            self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin, final)
             if self.VERBOSE > 1:  print "mem read unit ", cntUnit," (cluster ", self.clusterID, ") ", data.size, " elements"
 
             if self.system.ZF:
@@ -182,6 +182,7 @@ class Cluster:
 ##################################################################################
     
   def cbDataAvailable(self, unitID, entry):
+    if self.VERBOSE: print "cbDataAvailable unit %d (cluster %d)"%(unitID, self.clusterID)
     #this function is only called when the unit has processed the last entry corresponding 
     #corresponding to each group of filters
     #e.g., the NBout entry contains the final values for the corresponding filters
@@ -201,11 +202,11 @@ class Cluster:
     # if all the units finished its part then ... todo
     if self.unitsFinishedThisGroup[key] == self.nUnits:
       self.unitsFinishedThisGroup[key] = 0
-      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") copying the output for filters ",  auxFilterIDs
+      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") YES copying the output for filters ",  auxFilterIDs
       self.system.putData(self.windowID, entry[:len(auxFilterIDs)], auxFilterIDs)
       self.busy = False
     else:
-      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") NOT copying the output for filters ",  auxFilterIDs
+      if self.VERBOSE: print "[",self.system.now, "] (cluster ", self.clusterID, ") NOT copying the output for filters ",  auxFilterIDs, " units left: ", self.nUnits - self.unitsFinishedThisGroup[key] 
 
     # group of filters that the unit will produce the result for next
     self.unitFilterCnt[unitID] += 1
