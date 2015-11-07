@@ -12,6 +12,12 @@ import cluster
 import simpleMemory 
 import options as op
 
+def adjustDataPadding(data, padding):
+  # FYI there is actually a numpy pad function
+  assert padding != 0, "Padding is zero"
+  aux = np.zeros((data.shape[0], data.shape[1] + 2*padding, data.shape[2] + 2*padding))
+  aux[:, padding:-padding, padding:-padding] = data
+  return aux
 
 class LayerDirector:
 
