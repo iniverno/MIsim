@@ -6,18 +6,19 @@
 ##################################################################################
 
 # verbose message settings
-memVerbose      = 1
-clusterVerbose  = 1
-unitVerbose     = 1
-directorVerbose = 2
+verboseUnit     = 0
+verboseCluster  = 0
+verboseDirector = 0
+verboseMemory   = 0
+
+# just run one window
+fast = 1
 
 ZF = 1
-latencyPipeline = 8
-verboseUnit = 0
-verboseCluster = 0
-verboseDirector = 1
-verboseMemory = 0
 
+latencyPipeline = 8
+
+# don't compute results
 dummyUnits = True
 
 # Central Memory
