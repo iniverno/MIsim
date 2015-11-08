@@ -44,6 +44,8 @@ class Unit:
     self.dummyWhenCallInput = float("inf") 
     self.dummyWhenCallData = float("inf") 
     self.nullOutput = [0]*Tn
+    self.latencyInput = 0
+    self.latencyData = 0
 
     self.pipe = Q.Queue()
     self.headPipe = [] # aux var used to process the packet leaving the pipeline
@@ -98,6 +100,7 @@ class Unit:
 
     # some initialization tasks to prepare the unit to process data
     self.NBout_nEntries = int(math.ceil(self.SB_totalFilters  / float(self.Tn)))
+    
 
 ##################################################################################
 ###
@@ -149,6 +152,11 @@ class Unit:
     self.finalFragmentOfWindow = final
     #if self.system.ZF:
     #  self.NBin_data, self.offsets = self.compress(data)
+    if op.dummyUnits:
+      self.latencyInput = (max(1, self.NBin_data.size) / self.Ti) * self.NBout_nEntries
+      self.latencyData = (max(1,self.NBin_data.size) / self.Ti) + op.latencyPipeline
+      assert self.latencyInput > 0
+      assert self.latencyData > 0
 
     self.system.schedule(self)
 
@@ -162,6 +170,8 @@ class Unit:
 
     if op.dummyUnits:
       if self.skipThisChunk:
+        if self.VERBOSE > 1: 
+          print "unit %d (cluster %d), skipThis Chunk"%(self.unitID, self.clusterID)
         self.skipThisChunk= False 
         self.windowPointer += self.NBin_dataOriginalSize
         self.dummyWhenCallInput = float("inf") 
@@ -169,24 +179,20 @@ class Unit:
         self.busy = False # The cluster can assign us work to do
         self.cbInputRead(self.unitID) 
         if self.finalFragmentOfWindow:
-          self.cbDataAvailable(self.unitID, self.nullOutput)  
+          for i in range(self.NBout_nEntries):
+            self.cbDataAvailable(self.unitID, self.nullOutput)  
 
 
       if self.NBin_ready == self.system.now:
         self.busy = True
-        if self.skipThisChunk: 
-          self.skipThisChunk= False
-          self.NBin_data = np.zeros((1))
-        self.dummyWhenCallInput = (self.NBin_data.size / self.Ti) * self.NBout_nEntries
-        self.system.schedule(self, self.dummyWhenCallInput)
-        self.dummyWhenCallInput += self.system.now
+        self.system.schedule(self, self.latencyInput)
+        self.dummyWhenCallInput = self.system.now + self.latencyInput
 
         if self.VERBOSE > 1: print "unit %d (cluster %d) callInput:%d"%(self.unitID, self.clusterID, self.dummyWhenCallInput)
 
         if self.finalFragmentOfWindow:
-          self.dummyWhenCallData = (self.NBin_data.size / self.Ti) * self.NBout_nEntries + op.latencyPipeline
-          self.system.schedule(self, self.dummyWhenCallData)
-          self.dummyWhenCallData += self.system.now
+          self.system.schedule(self, self.latencyData)
+          self.dummyWhenCallData = self.system.now + self.latencyData
           if self.VERBOSE > 1: print "unit %d (cluster %d) callData:%d"%(self.unitID, self.clusterID, self.dummyWhenCallData)
 
       if self.system.now == self.dummyWhenCallInput:
@@ -198,8 +204,16 @@ class Unit:
 
         self.cbInputRead(self.unitID)
       if self.system.now == self.dummyWhenCallData:
-        self.dummyWhenCallData = float("inf")
-        self.busy = False
+        #the unit has to write results as many times as we are reusing the input
+        if self.NBout_ptr + 1 == self.NBout_nEntries:
+          self.dummyWhenCallData = float("inf")
+          self.busy = False
+          self.NBout_ptr = 0
+        else:
+          self.NBout_ptr += 1
+          self.system.schedule(self, self.latencyData)
+          self.dummyWhenCallData = self.system.now + self.latencyData
+
         self.cbDataAvailable(self.unitID, self.nullOutput)
 
       return

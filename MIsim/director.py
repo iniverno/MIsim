@@ -181,7 +181,12 @@ class LayerDirector:
     #print "Pending Count = ", np.sum(self.filtersPending[windowID])
     for i,e in enumerate(self.filtersPending[windowID]):
       if e:
-        if self.VERBOSE > 1: print "pendingFilters for window %d"%(windowID)
+        if self.VERBOSE > 1: 
+          print "pendingFilters for window %d"%(windowID)
+          a = []
+          for j,e in enumerate(self.filtersPending[windowID]):
+            if e: a.append(j)
+          print a
         return False
     if self.VERBOSE > 1: print "pendingFilters for window %d  LISTO"%(windowID)
     return True

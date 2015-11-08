@@ -8,7 +8,7 @@
 # verbose message settings
 verboseUnit     = 0
 verboseCluster  = 0
-verboseDirector = 0
+verboseDirector = 1
 verboseMemory   = 0
 
 # just run one window
