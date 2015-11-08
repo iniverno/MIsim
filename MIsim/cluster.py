@@ -154,7 +154,7 @@ class Cluster:
               assert offsets.size == data.size, "problem with offsets.size (%d) vs data.size (%d)"%(offsets.size, data.size)
               self.units[cntUnit].fill_offsets(offsets)
           else:
-            print "SKIP ", cntUnit, " ", self.clusterID, " ", nElements, " ", final
+            if self.VERBOSE > 0: print "SKIP ", cntUnit, " ", self.clusterID, " ", nElements, " ", final
             self.units[cntUnit].skipElements(nElements)
 
 
