@@ -35,7 +35,7 @@ use_traces = 1
 if use_traces:
 
   # get layer data from net trace
-  auxData = np.load( "./%s/%s"%(net_name, layer_file) )
+  auxData = np.load( "net_traces/%s/%s"%(net_name, layer_file) )
   auxData = auxData[0] # just do one image
   input_dim = auxData.shape
   print "data:", input_dim
@@ -58,7 +58,7 @@ if use_traces:
 
 
   # get other layer params from param file
-  f = open("./%s/%s_trace_params.csv"%(net_name, net_name))
+  f = open("net_traces/%s/%s_trace_params.csv"%(net_name, net_name))
   for line in f:
     if re.match(layer,line):
       params = line

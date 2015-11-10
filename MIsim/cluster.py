@@ -97,7 +97,7 @@ class Cluster:
 ##################################################################################
 ###
 ##################################################################################
-  def cycle(self):
+  def wakeup(self):
     if self.VERBOSE: print "[%d] Processing of window #%d in cluster #%d"%(self.system.now, self.windowID, self.clusterID) 
 
     # this will probably change when units are asynch
@@ -144,8 +144,15 @@ class Cluster:
           if len(data) > 0:
             #if self.system.ZF:
               #self.system.centralMem.read(addressOffset, offsets.size, self.units[cntUnit].fill_offsets)
-            
-            self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin, final)
+            if op.doubleBuffer:
+              self.units[cntUnit].fill_NBin(addressData, data, final)
+              if not final:
+                pass 
+
+            else:
+              #self.system.centralMem.read(addressData, data.size, self.units[cntUnit].fill_NBin, final)
+              self.system.centralMem.read(addressData, self.units[cntUnit].NBin_dataOriginalSize , self.units[cntUnit].fill_NBin, final)
+              
             if self.VERBOSE > 1:  print "mem read unit ", cntUnit," (cluster ", self.clusterID, ") ", data.size, " elements"
 
             if self.system.ZF:

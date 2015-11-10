@@ -12,7 +12,7 @@ verboseDirector = 1
 verboseMemory   = 0
 
 # just run one window
-fast = 1
+fast = 0
 
 ZF = 1
 
