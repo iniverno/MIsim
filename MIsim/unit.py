@@ -163,7 +163,7 @@ class Unit:
 ##################################################################################
 ###
 ##################################################################################
-  def cycle(self):
+  def wakeup(self):
     if self.lastTimeWokenUp == self.system.now:
       assert False, "woken up twice unit %d (cluster %d)"%(self.unitID, self.clusterID)
     self.lastTimeWokenUp = self.system.now

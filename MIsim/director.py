@@ -55,7 +55,7 @@ class LayerDirector:
       self.wakeQ[when] = set([entity])
 
 
-  def cycle(self):
+  def wakeup(self):
     if self.VERBOSE > 1: print "layerdirector, cycle ", self.now, len(self.wakeQ)
     entities = [] 
     if len(self.wakeQ) !=0:
@@ -63,7 +63,7 @@ class LayerDirector:
       if self.VERBOSE > 1: print "layerdirector, cycle ", self.now, aux, len(entities), " objects to wakeup"
       self.now = aux
       for obj in entities:
-        obj.cycle()
+        obj.wakeup()
 
 
 ##################################################################################
@@ -166,7 +166,7 @@ class LayerDirector:
  
         timeout=10000
         while not self.isFinished(windowID) and timeout > 0:
-          self.cycle()
+          self.wakeup()
           timeout -= 1
         assert timeout, "Simulation Timed Out"
           

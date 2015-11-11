@@ -15,9 +15,8 @@ verboseMemory   = 0
 fast = 0
 
 ZF = 1
-
 latencyPipeline = 8
-
+doubleBuffer = False
 # don't compute results
 dummyUnits = True
 
